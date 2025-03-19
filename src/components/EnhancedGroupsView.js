@@ -1,4 +1,4 @@
-// src/components/EnhancedGroupsView.js - Fixed version
+// src/components/EnhancedGroupsView.js
 import React, { useState, useEffect } from 'react';
 
 const EnhancedGroupsView = ({ 
@@ -6,7 +6,7 @@ const EnhancedGroupsView = ({
   onSelectGroup, 
   onCreateGroup, 
   onDeleteGroup,
-  getBoards, // Make sure these functions are passed as props
+  getBoards, 
   getColumns,
   getTasks 
 }) => {
@@ -17,9 +17,9 @@ const EnhancedGroupsView = ({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [totalTasks, setTotalTasks] = useState(0);
   const [workspaceStats, setWorkspaceStats] = useState([]);
+  const [nameError, setNameError] = useState('');
 
   useEffect(() => {
-    // Only run this if the required functions are available
     if (getBoards && getColumns && getTasks) {
       const stats = groups.map(group => {
         let tasksTotal = 0;
@@ -36,7 +36,6 @@ const EnhancedGroupsView = ({
               if (task.completed) {
                 tasksCompleted++;
               }
-              // Find the most recent task update
               if (task.updatedAt) {
                 const taskDate = new Date(task.updatedAt);
                 if (!latestActivity || taskDate > latestActivity) {
@@ -62,12 +61,29 @@ const EnhancedGroupsView = ({
     }
   }, [groups, getBoards, getColumns, getTasks]);
   
-  const handleCreateGroup = () => {
-    if (newGroupName.trim()) {
-      onCreateGroup(newGroupName.trim(), newGroupDescription.trim());
-      setNewGroupName('');
-      setNewGroupDescription('');
-      setIsCreating(false);
+  const handleCreateGroup = (e) => {
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    
+    setNameError('');
+    
+    if (!newGroupName.trim()) {
+      setNameError('Workspace name is required');
+      return;
+    }
+    
+    try {
+      if (typeof onCreateGroup === 'function') {
+        onCreateGroup(newGroupName.trim(), newGroupDescription.trim());
+        setNewGroupName('');
+        setNewGroupDescription('');
+        setIsCreating(false);
+      } else {
+        console.error('onCreateGroup is not a function');
+      }
+    } catch (error) {
+      console.error('Error creating group:', error);
     }
   };
   
@@ -79,11 +95,12 @@ const EnhancedGroupsView = ({
       setIsCreating(false);
       setNewGroupName('');
       setNewGroupDescription('');
+      setNameError('');
     }
   };
 
   const handleDeleteClick = (e, group) => {
-    e.stopPropagation(); // Prevent navigating to the group when clicking delete
+    e.stopPropagation();
     setGroupToDelete(group);
     setShowDeleteConfirmation(true);
   };
@@ -112,7 +129,6 @@ const EnhancedGroupsView = ({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
   
-  // Simplified stats for when the data functions aren't available
   const getSimplifiedStats = (group) => {
     return {
       boardCount: group.boardIds?.length || 0,
@@ -122,7 +138,6 @@ const EnhancedGroupsView = ({
   
   return (
     <div className="p-6 h-full overflow-y-auto">
-      {/* Header with Welcome Banner */}
       <div className="relative bg-gray-800 bg-opacity-50 rounded-lg mb-8 p-6 overflow-hidden header-metallic ambient-bg neon-border-effect">
         <div className="flex justify-between items-center relative z-10">
           <div>
@@ -143,7 +158,10 @@ const EnhancedGroupsView = ({
           <div className="hidden md:block">
             <button 
               className="btn-metallic px-4 py-2 rounded-md text-white flex items-center space-x-2"
-              onClick={() => setIsCreating(true)}
+              onClick={() => {
+                setIsCreating(true);
+                setNameError('');
+              }}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -160,11 +178,8 @@ const EnhancedGroupsView = ({
         <h2 className="text-xl font-bold text-white">Your Workspaces</h2>
       </div>
       
-      {/* Workspaces Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 grid-neon">
-        {/* Workspace Cards */}
         {groups.map(group => {
-          // Use workspace stats if available, otherwise use simplified stats
           const stats = workspaceStats.find(s => s.id === group.id) || getSimplifiedStats(group);
           
           const completionRate = stats.tasksTotal > 0 
@@ -177,7 +192,6 @@ const EnhancedGroupsView = ({
               className="card-metallic rounded-lg p-5 cursor-pointer relative group task-card"
               onClick={() => onSelectGroup(group.id)}
             >
-              {/* Delete Button */}
               <button
                 className="absolute top-3 right-3 p-1.5 rounded-full bg-gray-700 hover:bg-red-600 text-gray-400 hover:text-white transition-colors z-10 opacity-0 group-hover:opacity-100"
                 onClick={(e) => handleDeleteClick(e, group)}
@@ -199,7 +213,6 @@ const EnhancedGroupsView = ({
                 <p className="text-gray-400 text-sm mb-4 line-clamp-2 flex-1">{group.description}</p>
               )}
               
-              {/* Progress Bar - only show if we have stats data */}
               {getBoards && stats.tasksTotal > 0 && (
                 <div className="mb-4">
                   <div className="flex justify-between text-xs mb-1">
@@ -248,7 +261,10 @@ const EnhancedGroupsView = ({
         {!isCreating ? (
           <div
             className="card-metallic rounded-lg border border-dashed border-gray-700 p-5 flex flex-col items-center justify-center cursor-pointer min-h-[220px] hover:border-indigo-500 transition-all duration-200"
-            onClick={() => setIsCreating(true)}
+            onClick={() => {
+              setIsCreating(true);
+              setNameError('');
+            }}
           >
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -262,15 +278,25 @@ const EnhancedGroupsView = ({
           <div className="card-metallic rounded-lg border border-gray-700 p-5 shadow-lg">
             <h3 className="text-lg font-semibold text-white mb-4">Create Workspace</h3>
             
-            <input
-              type="text"
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              placeholder="Workspace name"
-              onKeyDown={handleKeyDown}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-3"
-              autoFocus
-            />
+            <div className="mb-3">
+              <input
+                type="text"
+                value={newGroupName}
+                onChange={(e) => {
+                  setNewGroupName(e.target.value);
+                  if (e.target.value.trim()) {
+                    setNameError('');
+                  }
+                }}
+                placeholder="Workspace name"
+                onKeyDown={handleKeyDown}
+                className={`w-full px-3 py-2 bg-gray-800 border ${nameError ? 'border-red-500' : 'border-gray-600'} rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
+                autoFocus
+              />
+              {nameError && (
+                <p className="mt-1 text-sm text-red-500">{nameError}</p>
+              )}
+            </div>
             
             <textarea
               value={newGroupDescription}
@@ -282,18 +308,31 @@ const EnhancedGroupsView = ({
             
             <div className="flex justify-end gap-2">
               <button 
-                className="btn-metallic px-4 py-2 rounded-md text-white"
-                onClick={handleCreateGroup}
+                type="button"
+                className="btn-metallic px-4 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => {
+                  console.log('Create button clicked');
+                  if (newGroupName.trim()) {
+                    onCreateGroup(newGroupName.trim(), newGroupDescription.trim());
+                    setNewGroupName('');
+                    setNewGroupDescription('');
+                    setIsCreating(false);
+                  } else {
+                    setNameError('Workspace name is required');
+                  }
+                }}
               >
                 Create
               </button>
               
               <button 
+                type="button"
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md focus:outline-none transition-colors"
                 onClick={() => {
                   setIsCreating(false);
                   setNewGroupName('');
                   setNewGroupDescription('');
+                  setNameError('');
                 }}
               >
                 Cancel
@@ -303,7 +342,6 @@ const EnhancedGroupsView = ({
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirmation && groupToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
           <div className="bg-gray-850 w-full max-w-md rounded-lg shadow-2xl border border-gray-700 p-6 modal-neon">

@@ -271,7 +271,6 @@ const AchievementsView = ({
         unlocked: longestStreak >= 14 || earnedAchievementsMap['longest-streak-14']
       },
       
-      // Weekend Achievements
       {
         id: 'weekend-warrior',
         title: 'Weekend Warrior',

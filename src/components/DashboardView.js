@@ -1,4 +1,3 @@
-// Updated src/components/DashboardView.js with HabitTracker
 import React, { useState, useEffect } from 'react';
 import HabitTracker from './HabitTracker';
 
@@ -79,7 +78,6 @@ const DashboardView = ({
           });
         });
         
-        // Add board stats
         if (boardTotalTasks > 0) {
           tasksByBoard.push({
             boardId: board.id,

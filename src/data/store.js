@@ -103,7 +103,6 @@ export const initializeStore = () => {
 const WorkspaceItemTypes = {
   NOTE: 'note',
   LINK: 'link',
-  CHECKLIST: 'checklist',
   FILE_REFERENCE: 'file'
 };
 

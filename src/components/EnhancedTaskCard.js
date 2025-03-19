@@ -1,4 +1,3 @@
-// Updated EnhancedTaskCard.js with Progress Bar
 import React from 'react';
 import Card3D from './Card3D';
 

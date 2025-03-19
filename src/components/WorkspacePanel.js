@@ -100,38 +100,6 @@ const WorkspacePanel = ({
           );
         }
       
-      case 'checklist':
-        try {
-          const checklistItems = JSON.parse(item.content);
-          return (
-            <div className="mt-2 space-y-1">
-              {checklistItems.map((checkItem, index) => (
-                <div key={index} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={checkItem.checked}
-                    onChange={() => {
-                      const updatedItems = [...checklistItems];
-                      updatedItems[index].checked = !updatedItems[index].checked;
-                      onUpdateItem(item.id, { content: JSON.stringify(updatedItems) });
-                    }}
-                    className="mr-2"
-                  />
-                  <span className={`text-sm ${checkItem.checked ? 'line-through text-gray-500' : 'text-gray-300'}`}>
-                    {checkItem.text}
-                  </span>
-                </div>
-              ))}
-            </div>
-          );
-        } catch (e) {
-          return (
-            <div className="mt-2 text-gray-300">
-              {item.content}
-            </div>
-          );
-        }
-      
       default:
         return (
           <div className="mt-2 text-gray-300">
@@ -157,13 +125,6 @@ const WorkspacePanel = ({
             <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         );
-      case 'checklist':
-        return (
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        );
       default:
         return (
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -178,7 +139,6 @@ const WorkspacePanel = ({
     switch (type) {
       case 'note': return 'Note';
       case 'link': return 'Link';
-      case 'checklist': return 'Checklist';
       default: return 'Item';
     }
   };
@@ -218,12 +178,6 @@ const WorkspacePanel = ({
               >
                 Link
               </button>
-              <button
-                className={`py-2 px-3 text-sm ${newItemType === 'checklist' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-400'}`}
-                onClick={() => setNewItemType('checklist')}
-              >
-                Checklist
-              </button>
             </div>
             
             {newItemType === 'link' ? (
@@ -233,14 +187,6 @@ const WorkspacePanel = ({
                 onChange={(e) => setNewItemContent(e.target.value)}
                 placeholder="Paste URL or link..."
                 className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            ) : newItemType === 'checklist' ? (
-              <textarea
-                value={newItemContent}
-                onChange={(e) => setNewItemContent(e.target.value)}
-                placeholder="Enter items (one per line)..."
-                rows="3"
-                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
               />
             ) : (
               <textarea

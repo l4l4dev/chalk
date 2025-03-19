@@ -13,8 +13,13 @@ import {
   deleteTask,
   moveTask,
   subscribeToChanges,
-  deleteGroup
+  deleteGroup,
+  getWorkspaceItems,
+  createWorkspaceItem,
+  updateWorkspaceItem,
+  deleteWorkspaceItem
 } from './data/store';
+import { THEMES, initializeTheme, applyTheme } from './utils/themeManager';
 
 import NeonLoader from './components/NeonLoader';
 import PageTransition from './components/PageTransition';
@@ -33,8 +38,8 @@ const App = () => {
   const [groups, setGroups] = useState([]);
   const [currentGroupId, setCurrentGroupId] = useState(null);
   const [currentBoardId, setCurrentBoardId] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [currentView, setCurrentView] = useState('groups'); // 'groups', 'boards', 'board', 'dashboard', 'achievements', 'search', 'graph'
+  const [currentTheme, setCurrentTheme] = useState(THEMES.DARK); 
+  const [currentView, setCurrentView] = useState('groups');
   const [notifications, setNotifications] = useState([]);
   const [achievements, setAchievements] = useState([]);
 
@@ -43,9 +48,11 @@ const App = () => {
       try {
         await initializeStore();
         console.log('Store initialized');
+        const savedTheme = initializeTheme();
+        setCurrentTheme(savedTheme);
         
         refreshGroups();
-        
+
         const savedAchievements = localStorage.getItem('chalk-achievements');
         if (savedAchievements) {
           setAchievements(JSON.parse(savedAchievements));
@@ -119,7 +126,6 @@ const App = () => {
       setCurrentView('groups');
     }
   };
-  
 
   const handleCreateTask = (columnId, content) => {
     createTask(columnId, content);
@@ -129,6 +135,26 @@ const App = () => {
 
   const handleMoveTask = (taskId, sourceColumnId, destinationColumnId, sourceIndex, destinationIndex) => {
     moveTask(taskId, sourceColumnId, destinationColumnId, sourceIndex, destinationIndex);
+  };
+
+  const handleCreateWorkspaceItem = (boardId, type, content, metadata = {}) => {
+    createWorkspaceItem(boardId, type, content, metadata);
+    
+    addNotification({
+      type: 'success',
+      title: 'Item Added',
+      message: `New ${type} added to workspace`,
+      icon: type === 'note' ? '📝' : type === 'link' ? '🔗' : '✅',
+      duration: 3000
+    });
+  };
+  
+  const handleUpdateWorkspaceItem = (itemId, updates) => {
+    updateWorkspaceItem(itemId, updates);
+  };
+  
+  const handleDeleteWorkspaceItem = (itemId) => {
+    deleteWorkspaceItem(itemId);
   };
 
   const getCurrentGroup = () => {
@@ -146,6 +172,11 @@ const App = () => {
 
   const getCurrentColumns = () => {
     return currentBoardId ? getColumns(currentBoardId) : [];
+  };
+
+  // Get workspace items for current board
+  const getCurrentWorkspaceItems = () => {
+    return currentBoardId ? getWorkspaceItems(currentBoardId) : [];
   };
 
   const handleSelectGroup = (groupId) => {
@@ -192,8 +223,17 @@ const App = () => {
     setCurrentView('boards');
   };
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
+  const changeTheme = (theme) => {
+    applyTheme(theme);
+    setCurrentTheme(theme);
+    
+    addNotification({
+      type: 'info',
+      title: 'Theme Changed',
+      message: `Theme switched to ${theme.charAt(0).toUpperCase() + theme.slice(1)}`,
+      icon: theme === THEMES.DARK ? '🌙' : theme === THEMES.LIGHT ? '☀️' : '✨',
+      duration: 3000
+    });
   };
   
   const checkForNewAchievements = () => {
@@ -296,7 +336,7 @@ const App = () => {
 
   if (!isLoaded) {
     return (
-      <div className="flex h-screen bg-metallic-gradient">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="flex justify-center items-center w-full">
           <NeonLoader text="Initializing Chalk..." />
         </div>
@@ -305,14 +345,15 @@ const App = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-metallic-gradient text-white">
+    <div className="min-h-screen theme-bg-primary flex">
       <Sidebar 
         groups={groups}
         currentGroupId={currentGroupId}
         onSelectGroup={handleSelectGroup}
         onCreateGroup={handleCreateGroup}
         onDeleteGroup={handleDeleteGroup}
-        isDarkMode={isDarkMode}
+        currentTheme={currentTheme}  
+        onThemeChange={changeTheme} 
         onToggleDarkMode={toggleDarkMode}
         onShowDashboard={handleShowDashboard}
         onShowAchievements={handleShowAchievements}
@@ -355,6 +396,10 @@ const App = () => {
             onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
             onBack={handleBackToBoards}
+            workspaceItems={getCurrentWorkspaceItems()}
+            onCreateWorkspaceItem={(type, content, metadata) => handleCreateWorkspaceItem(currentBoardId, type, content, metadata)}
+            onUpdateWorkspaceItem={handleUpdateWorkspaceItem}
+            onDeleteWorkspaceItem={handleDeleteWorkspaceItem}
           />
         )}
 
@@ -392,7 +437,6 @@ const App = () => {
           />
         )}
         
-        {/* Add the new GraphView component */}
         {currentView === 'graph' && (
           <GraphView
             groups={groups}
