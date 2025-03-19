@@ -53,16 +53,13 @@ const GroupsView = ({ groups, onSelectGroup, onCreateGroup, onDeleteGroup }) => 
         <h2 className="text-xl font-bold text-white">Workspaces</h2>
       </div>
       
-      {/* Workspaces Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Workspace Cards */}
         {groups.map(group => (
           <div
             key={group.id}
             className="bg-gray-800 rounded-lg border border-gray-700 hover:border-indigo-500 p-5 cursor-pointer shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-200 relative group task-card"
             onClick={() => onSelectGroup(group.id)}
           >
-            {/* Add Delete Button */}
             <button
               className="absolute top-2 right-2 p-1 rounded-full bg-gray-700 hover:bg-red-600 text-gray-400 hover:text-white transition-colors"
               onClick={(e) => handleDeleteClick(e, group)}

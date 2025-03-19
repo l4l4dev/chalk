@@ -6,6 +6,7 @@ import './styles.css';
 import './neonTheme.css'; 
 import './3dCards.css'; 
 import './metallicStyles.css';
+import './theme-overrides.css'
 
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function() {};

@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "dev": "webpack --watch",
     "build": "webpack --mode production && electron-builder build",
     "build:win": "webpack --mode production && electron-builder build --win",
     "build:mac": "webpack --mode production && electron-builder build --mac",

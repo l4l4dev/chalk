@@ -174,8 +174,9 @@ const EnhancedGroupsView = ({
         <div className="absolute bottom-0 left-0 right-0 h-px accent-line"></div>
       </div>
       
-      <div className="flex items-center mb-6 pb-4 border-b border-gray-800">
+      <div className="relative flex items-center mb-8 pb-3">
         <h2 className="text-xl font-bold text-white">Your Workspaces</h2>
+        <div className="absolute bottom-0 left-0 w-32 h-0.5 bg-gradient-to-r from-indigo-500 to-transparent"></div>
       </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 grid-neon">

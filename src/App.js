@@ -19,8 +19,6 @@ import {
   updateWorkspaceItem,
   deleteWorkspaceItem
 } from './data/store';
-import { THEMES, initializeTheme, applyTheme } from './utils/themeManager';
-
 import NeonLoader from './components/NeonLoader';
 import PageTransition from './components/PageTransition';
 import EnhancedGroupsView from './components/EnhancedGroupsView';
@@ -32,6 +30,10 @@ import SearchTasksView from './components/SearchTasksView';
 import GraphView from './components/GraphView'; 
 import NotificationSystem from './components/NotificationSystem';
 import Sidebar from './components/Sidebar';
+import SettingsView from './components/SettingsView';
+import PasswordDialog from './components/PasswordDialog';
+import { isAppUnlocked } from './utils/passwordManager';
+import { initializeTheme, applyTheme, THEMES } from './utils/themeManager';
 
 const App = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -42,6 +44,7 @@ const App = () => {
   const [currentView, setCurrentView] = useState('groups');
   const [notifications, setNotifications] = useState([]);
   const [achievements, setAchievements] = useState([]);
+  const [appLocked, setAppLocked] = useState(!isAppUnlocked());
 
   useEffect(() => {
     const init = async () => {
@@ -77,6 +80,15 @@ const App = () => {
     
     init();
   }, []);
+
+  const handleThemeChange = (theme) => {
+    setCurrentTheme(theme);
+    applyTheme(theme);
+  };
+
+  const handleUnlock = () => {
+    setAppLocked(false);
+  };
   
   useEffect(() => {
     if (achievements.length > 0) {
@@ -87,6 +99,33 @@ const App = () => {
   const refreshGroups = () => {
     setGroups(getGroups());
   };
+
+  const handleShowSettings = () => {
+    setCurrentView('settings');
+  };
+
+  const handleResetApp = () => {
+    localStorage.clear();
+    
+    setGroups([]);
+    setCurrentGroupId(null);
+    setCurrentBoardId(null);
+    setCurrentView('groups');
+    setNotifications([]);
+    setAchievements([]);
+    
+    addNotification({
+      type: 'info',
+      title: 'App Reset',
+      message: 'All data has been cleared. Refreshing app...',
+      duration: 3000
+    });
+    
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  };
+
 
   const handleCreateGroup = (name, description = '') => {
     createGroup(name, description);
@@ -174,7 +213,6 @@ const App = () => {
     return currentBoardId ? getColumns(currentBoardId) : [];
   };
 
-  // Get workspace items for current board
   const getCurrentWorkspaceItems = () => {
     return currentBoardId ? getWorkspaceItems(currentBoardId) : [];
   };
@@ -223,19 +261,6 @@ const App = () => {
     setCurrentView('boards');
   };
 
-  const changeTheme = (theme) => {
-    applyTheme(theme);
-    setCurrentTheme(theme);
-    
-    addNotification({
-      type: 'info',
-      title: 'Theme Changed',
-      message: `Theme switched to ${theme.charAt(0).toUpperCase() + theme.slice(1)}`,
-      icon: theme === THEMES.DARK ? '🌙' : theme === THEMES.LIGHT ? '☀️' : '✨',
-      duration: 3000
-    });
-  };
-  
   const checkForNewAchievements = () => {
     let tasksCreated = 0;
     let tasksCompleted = 0;
@@ -345,116 +370,134 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen theme-bg-primary flex">
-      <Sidebar 
-        groups={groups}
-        currentGroupId={currentGroupId}
-        onSelectGroup={handleSelectGroup}
-        onCreateGroup={handleCreateGroup}
-        onDeleteGroup={handleDeleteGroup}
-        currentTheme={currentTheme}  
-        onThemeChange={changeTheme} 
-        onToggleDarkMode={toggleDarkMode}
-        onShowDashboard={handleShowDashboard}
-        onShowAchievements={handleShowAchievements}
-        onShowSearch={handleShowSearch}
-        onShowGraph={handleShowGraph}
-      />
-      
-      <div className="flex-1 overflow-hidden flex flex-col">
-      {currentView === 'groups' && (
-        <PageTransition transitionKey="groups">
-          <EnhancedGroupsView 
-            groups={groups} 
-            onSelectGroup={handleSelectGroup} 
+    <div 
+      className="min-h-screen flex"
+      style={{ backgroundColor: 'var(--bg-primary)' }}
+    >
+      {appLocked ? (
+        <PasswordDialog onSuccess={handleUnlock} />
+      ) : (
+        <>
+          <Sidebar 
+            groups={groups}
+            currentGroupId={currentGroupId}
+            onSelectGroup={handleSelectGroup}
             onCreateGroup={handleCreateGroup}
             onDeleteGroup={handleDeleteGroup}
-            getBoards={getBoards}
-            getColumns={getColumns}
-            getTasks={getTasks}
+            currentTheme={currentTheme}  
+            onThemeChange={handleThemeChange} 
+            onShowDashboard={handleShowDashboard}
+            onShowAchievements={handleShowAchievements}
+            onShowSearch={handleShowSearch}
+            onShowGraph={handleShowGraph}
+            onShowSettings={handleShowSettings}
           />
-        </PageTransition>
+          
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {currentView === 'groups' && (
+              <PageTransition transitionKey="groups">
+                <EnhancedGroupsView 
+                  groups={groups} 
+                  onSelectGroup={handleSelectGroup} 
+                  onCreateGroup={handleCreateGroup}
+                  onDeleteGroup={handleDeleteGroup}
+                  getBoards={getBoards}
+                  getColumns={getColumns}
+                  getTasks={getTasks}
+                />
+              </PageTransition>
+            )}
+            {currentView === 'boards' && (
+              <BoardsView 
+                group={getCurrentGroup()} 
+                boards={getCurrentBoards()} 
+                onSelectBoard={handleSelectBoard} 
+                onCreateBoard={handleCreateBoard} 
+                onBack={handleBackToGroups}
+              />
+            )}
+            
+            {currentView === 'board' && (
+              <BoardView 
+                board={getCurrentBoard()} 
+                columns={getCurrentColumns()} 
+                getTasks={getTasks} 
+                onCreateColumn={handleCreateColumn} 
+                onCreateTask={handleCreateTask} 
+                onMoveTask={handleMoveTask}
+                onUpdateTask={handleUpdateTask}
+                onDeleteTask={handleDeleteTask}
+                onBack={handleBackToBoards}
+                workspaceItems={getCurrentWorkspaceItems()}
+                onCreateWorkspaceItem={(type, content, metadata) => handleCreateWorkspaceItem(currentBoardId, type, content, metadata)}
+                onUpdateWorkspaceItem={handleUpdateWorkspaceItem}
+                onDeleteWorkspaceItem={handleDeleteWorkspaceItem}
+              />
+            )}
+  
+            {currentView === 'dashboard' && (
+              <DashboardView
+                groups={groups}
+                getBoards={getBoards}
+                getColumns={getColumns}
+                getTasks={getTasks}
+                currentGroupId={currentGroupId}
+                onSelectBoard={handleSelectBoard}
+                onBack={handleBackToGroups}
+              />
+            )}
+            
+            {currentView === 'achievements' && (
+              <AchievementsView
+                groups={groups}
+                getBoards={getBoards}
+                getColumns={getColumns}
+                getTasks={getTasks}
+                onBack={handleBackToGroups}
+                earnedAchievements={achievements}
+              />
+            )}
+            
+            {currentView === 'settings' && (
+              <SettingsView
+                onBack={handleBackToGroups}
+                onThemeChange={handleThemeChange}
+                isDarkMode={currentTheme === THEMES.DARK}
+                onResetApp={handleResetApp}
+              />
+            )}
+  
+            {currentView === 'search' && (
+              <SearchTasksView
+                groups={groups}
+                getBoards={getBoards}
+                getColumns={getColumns}
+                getTasks={getTasks}
+                onBack={handleBackToGroups}
+                onTaskClick={handleTaskClick}
+              />
+            )}
+            
+            {currentView === 'graph' && (
+              <GraphView
+                groups={groups}
+                getBoards={getBoards}
+                getColumns={getColumns}
+                getTasks={getTasks}
+                onSelectTask={handleTaskClick}
+                onSelectBoard={handleSelectBoard}
+                onBack={handleBackToGroups}
+              />
+            )}
+          </div>
+          <NotificationSystem 
+            notifications={notifications}
+            onDismiss={removeNotification}
+          />
+        </>
       )}
-        {currentView === 'boards' && (
-          <BoardsView 
-            group={getCurrentGroup()} 
-            boards={getCurrentBoards()} 
-            onSelectBoard={handleSelectBoard} 
-            onCreateBoard={handleCreateBoard} 
-            onBack={handleBackToGroups}
-          />
-        )}
-        
-        {currentView === 'board' && (
-          <BoardView 
-            board={getCurrentBoard()} 
-            columns={getCurrentColumns()} 
-            getTasks={getTasks} 
-            onCreateColumn={handleCreateColumn} 
-            onCreateTask={handleCreateTask} 
-            onMoveTask={handleMoveTask}
-            onUpdateTask={handleUpdateTask}
-            onDeleteTask={handleDeleteTask}
-            onBack={handleBackToBoards}
-            workspaceItems={getCurrentWorkspaceItems()}
-            onCreateWorkspaceItem={(type, content, metadata) => handleCreateWorkspaceItem(currentBoardId, type, content, metadata)}
-            onUpdateWorkspaceItem={handleUpdateWorkspaceItem}
-            onDeleteWorkspaceItem={handleDeleteWorkspaceItem}
-          />
-        )}
-
-        {currentView === 'dashboard' && (
-          <DashboardView
-            groups={groups}
-            getBoards={getBoards}
-            getColumns={getColumns}
-            getTasks={getTasks}
-            currentGroupId={currentGroupId}
-            onSelectBoard={handleSelectBoard}
-            onBack={handleBackToGroups}
-          />
-        )}
-        
-        {currentView === 'achievements' && (
-          <AchievementsView
-            groups={groups}
-            getBoards={getBoards}
-            getColumns={getColumns}
-            getTasks={getTasks}
-            onBack={handleBackToGroups}
-            earnedAchievements={achievements}
-          />
-        )}
-        
-        {currentView === 'search' && (
-          <SearchTasksView
-            groups={groups}
-            getBoards={getBoards}
-            getColumns={getColumns}
-            getTasks={getTasks}
-            onBack={handleBackToGroups}
-            onTaskClick={handleTaskClick}
-          />
-        )}
-        
-        {currentView === 'graph' && (
-          <GraphView
-            groups={groups}
-            getBoards={getBoards}
-            getColumns={getColumns}
-            getTasks={getTasks}
-            onSelectTask={handleTaskClick}
-            onSelectBoard={handleSelectBoard}
-            onBack={handleBackToGroups}
-          />
-        )}
-        </div>
-        <NotificationSystem 
-          notifications={notifications}
-          onDismiss={removeNotification}
-        />
-      </div>
-    );
+    </div>
+  );
 };
 
 export default App;

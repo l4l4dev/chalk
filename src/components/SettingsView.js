@@ -1,11 +1,28 @@
 // src/components/SettingsView.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { downloadExportFile, readImportFile, importData } from '../data/export-import';
 
 const SettingsView = ({ onBack, onThemeChange, isDarkMode, onResetApp }) => {
   const [importStatus, setImportStatus] = useState(null);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const [betaFeedbackEmail, setBetaFeedbackEmail] = useState('');
+  const [currentTheme, setCurrentTheme] = useState(isDarkMode ? 'dark' : 'light');
+  
+  const [isPasswordProtected, setIsPasswordProtected] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  
+  useEffect(() => {
+    const hasPassword = localStorage.getItem('chalk_password_hash') !== null;
+    setIsPasswordProtected(hasPassword);
+    
+    const savedTheme = localStorage.getItem('chalk_theme');
+    if (savedTheme) {
+      setCurrentTheme(savedTheme);
+    }
+  }, []);
   
   const handleImportFile = async (e) => {
     try {
@@ -31,6 +48,56 @@ const SettingsView = ({ onBack, onThemeChange, isDarkMode, onResetApp }) => {
     e.preventDefault();
     window.open(`mailto:your-beta-feedback@example.com?subject=Chalk Beta Feedback&body=Email: ${betaFeedbackEmail}%0A%0AFeedback:%0A%0A`, '_blank');
     setBetaFeedbackEmail('');
+  };
+
+  const handleSetPassword = () => {
+    if (!newPassword) {
+      setPasswordError('Password cannot be empty');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    
+    localStorage.setItem('chalk_password_hash', 'hashed_' + newPassword);
+    setIsPasswordProtected(true);
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError('');
+  };
+  
+  const handleChangePassword = () => {
+    const storedHash = localStorage.getItem('chalk_password_hash');
+    const currentHash = 'hashed_' + currentPassword;
+    
+    if (currentHash !== storedHash) {
+      setPasswordError('Current password is incorrect');
+      return;
+    }
+    
+    if (!newPassword) {
+      localStorage.removeItem('chalk_password_hash');
+      setIsPasswordProtected(false);
+    } else {
+      if (newPassword !== confirmPassword) {
+        setPasswordError('New passwords do not match');
+        return;
+      }
+      
+      localStorage.setItem('chalk_password_hash', 'hashed_' + newPassword);
+    }
+    
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError('');
+  };
+  
+  const handleThemeChange = (theme) => {
+    setCurrentTheme(theme);
+    localStorage.setItem('chalk_theme', theme);
+    onThemeChange(theme);
   };
   
   return (
@@ -62,7 +129,7 @@ const SettingsView = ({ onBack, onThemeChange, isDarkMode, onResetApp }) => {
                       ? 'border-indigo-500 bg-gray-700' 
                       : 'border-gray-700 bg-gray-800 hover:bg-gray-750'
                   }`}
-                  onClick={() => onThemeChange('dark')}
+                  onClick={() => handleThemeChange('dark')}
                 >
                   <div className="w-full h-12 bg-gray-900 rounded-md mb-2 overflow-hidden">
                     <div className="w-8 h-2 bg-gray-700 rounded-full mt-2 ml-2"></div>
@@ -78,7 +145,7 @@ const SettingsView = ({ onBack, onThemeChange, isDarkMode, onResetApp }) => {
                       ? 'border-indigo-500 bg-gray-700' 
                       : 'border-gray-700 bg-gray-800 hover:bg-gray-750'
                   }`}
-                  onClick={() => onThemeChange('light')}
+                  onClick={() => handleThemeChange('light')}
                 >
                   <div className="w-full h-12 bg-white rounded-md mb-2 overflow-hidden">
                     <div className="w-8 h-2 bg-gray-200 rounded-full mt-2 ml-2"></div>
@@ -94,7 +161,7 @@ const SettingsView = ({ onBack, onThemeChange, isDarkMode, onResetApp }) => {
                       ? 'border-indigo-500 bg-gray-700' 
                       : 'border-gray-700 bg-gray-800 hover:bg-gray-750'
                   }`}
-                  onClick={() => onThemeChange('neon')}
+                  onClick={() => handleThemeChange('neon')}
                 >
                   <div className="w-full h-12 bg-blue-900 rounded-md mb-2 overflow-hidden relative">
                     <div className="w-8 h-2 bg-pink-500 rounded-full mt-2 ml-2 shadow-lg shadow-pink-500/50"></div>
@@ -154,6 +221,83 @@ const SettingsView = ({ onBack, onThemeChange, isDarkMode, onResetApp }) => {
               >
                 Export Data
               </button>
+            </div>
+
+            <div>
+              <h4 className="text-white font-medium mb-2">Password Protection</h4>
+              <p className="text-gray-400 text-sm mb-2">
+                Add a password to protect your data from unauthorized access.
+              </p>
+              
+              {!isPasswordProtected ? (
+                <div className="space-y-3">
+                  <div>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Create a password"
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-2"
+                    />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm password"
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                    {passwordError && (
+                      <p className="mt-1 text-sm text-red-400">{passwordError}</p>
+                    )}
+                  </div>
+                  <button
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition-colors"
+                    onClick={handleSetPassword}
+                  >
+                    Set Password
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="bg-green-900/30 border border-green-800 rounded-md p-2 text-sm text-green-400">
+                    Password protection is enabled
+                  </div>
+                  <div>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Current password"
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-2"
+                    />
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password (leave empty to remove)"
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-2"
+                    />
+                    {newPassword && (
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                    )}
+                    {passwordError && (
+                      <p className="mt-1 text-sm text-red-400">{passwordError}</p>
+                    )}
+                  </div>
+                  <button
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition-colors"
+                    onClick={handleChangePassword}
+                  >
+                    {newPassword ? 'Change Password' : 'Remove Password'}
+                  </button>
+                </div>
+              )}
             </div>
             
             <div>

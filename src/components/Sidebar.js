@@ -1,4 +1,3 @@
-// src/components/Sidebar.js
 import React, { useState } from 'react';
 
 const Sidebar = ({ 
@@ -7,8 +6,8 @@ const Sidebar = ({
   onSelectGroup, 
   onCreateGroup,
   onDeleteGroup,
-  isDarkMode,
-  onToggleDarkMode,
+  currentTheme,
+  onThemeChange,
   onShowDashboard,
   onShowAchievements,
   onShowSearch,
@@ -62,17 +61,14 @@ const Sidebar = ({
   };
   
   return (
-    <div className="flex h-full relative z-10">
-        {/* Icon Sidebar */}
-      <div className="w-12 h-full bg-gray-900 border-r border-gray-800 flex flex-col items-center py-3">
-        {/* App Logo */}
+    <div className="flex h-screen relative z-10">
+      <div className="w-12 h-screen bg-gray-900 flex flex-col items-center py-3">
         <div className="mb-6 text-xl font-bold">
           <span className="bg-gradient-to-r from-purple-400 to-indigo-500 text-transparent bg-clip-text">C</span>
         </div>
         
-        {/* Main Navigation Icons */}
         <div className="flex flex-col items-center space-y-4">
-        <button 
+          <button 
             onClick={onShowDashboard}
             className="w-8 h-8 flex items-center justify-center rounded-md bg-indigo-800/30 hover:bg-indigo-800 text-indigo-400 hover:text-white transition-colors neon-icon"
             title="Dashboard"
@@ -93,7 +89,6 @@ const Sidebar = ({
             </svg>
           </button>
           
-          {/* New Graph View Button */}
           <button 
             onClick={onShowGraph}
             className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
@@ -116,7 +111,6 @@ const Sidebar = ({
           
           <div className="mt-2 w-6 h-[1px] bg-gray-800"></div>
           
-          {/* Workspace Toggle */}
           <button
             onClick={toggleGroups}
             className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${
@@ -133,32 +127,32 @@ const Sidebar = ({
         </div>
         
         <div className="mt-auto">
-        <button 
-          className="mt-2 w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
-          onClick={() => {
-            const nextTheme = 
-              currentTheme === 'dark' ? 'light' : 
-              currentTheme === 'light' ? 'neon' : 'dark';
-            onThemeChange(nextTheme);
-          }}
-          title={`Current Theme: ${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`}
-        >
-          {currentTheme === 'dark' && (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-            </svg>
-          )}
-          {currentTheme === 'light' && (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-            </svg>
-          )}
-          {currentTheme === 'neon' && (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
-            </svg>
-          )}
-        </button>
+          <button 
+            className="mt-2 w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+            onClick={() => {
+              const nextTheme = 
+                currentTheme === 'dark' ? 'light' : 
+                currentTheme === 'light' ? 'neon' : 'dark';
+              onThemeChange(nextTheme);
+            }}
+            title={`Current Theme: ${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`}
+          >
+            {currentTheme === 'dark' && (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+              </svg>
+            )}
+            {currentTheme === 'light' && (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+              </svg>
+            )}
+            {currentTheme === 'neon' && (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
+              </svg>
+            )}
+          </button>
           
           <button 
             className="mt-2 w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
@@ -173,8 +167,8 @@ const Sidebar = ({
       </div>
       
       {expandedGroups && (
-        <div className="w-52 h-full bg-gray-900 border-r border-gray-800 flex flex-col">
-          <div className="px-4 py-3 flex items-center justify-between border-b border-gray-800">
+        <div className="w-52 h-screen bg-gray-900 flex flex-col">
+          <div className="px-4 py-3 flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-500 tracking-wider">WORKSPACES</span>
             <button 
               className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-500 hover:text-white transition-colors"
@@ -225,39 +219,45 @@ const Sidebar = ({
           )}
           
           <div className="flex-1 overflow-y-auto">
-            <div className="mt-1 px-2">
-              {groups.map(group => (
-                <div 
-                  key={group.id}
-                  className={`flex items-center px-2 py-1.5 rounded-md mb-1 cursor-pointer transition-colors ${
-                    currentGroupId === group.id 
-                      ? 'bg-indigo-900/30 text-indigo-300' 
-                      : 'text-gray-300 hover:bg-gray-800'
-                  }`}
-                  onClick={() => onSelectGroup(group.id)}
-                >
-                  <span className="mr-2 opacity-70">📁</span>
-                  <span className="flex-1 truncate text-sm">{group.name}</span>
-                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-400 mr-2">
-                    {group.boardIds?.length || 0}
-                  </span>
-                  
-                  <button
-                    className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 text-gray-500 hover:text-red-400 transition-colors focus:outline-none"
-                    onClick={(e) => handleDeleteClick(e, group)}
-                    title="Delete workspace"
+            {groups.length > 0 ? (
+              <div className="mt-1">
+                {groups.map(group => (
+                  <div 
+                    key={group.id}
+                    className={`flex items-center px-2 py-1.5 rounded-md mb-1 cursor-pointer transition-colors ${
+                      currentGroupId === group.id 
+                        ? 'bg-indigo-900/30 text-indigo-300' 
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`}
+                    onClick={() => onSelectGroup(group.id)}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <span className="mr-2 opacity-70">📁</span>
+                    <span className="flex-1 truncate text-sm">{group.name}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-400 mr-2">
+                      {group.boardIds?.length || 0}
+                    </span>
+                    
+                    <button
+                      className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 text-gray-500 hover:text-red-400 transition-colors focus:outline-none"
+                      onClick={(e) => handleDeleteClick(e, group)}
+                      title="Delete workspace"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                No workspaces yet. Click the + button to create one.
+              </div>
+            )}
           </div>
         </div>
       )}
-
+      
       {showDeleteConfirmation && groupToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
           <div className="bg-gray-850 w-full max-w-md rounded-lg shadow-2xl border border-gray-700 p-6">
