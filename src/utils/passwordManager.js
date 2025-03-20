@@ -1,6 +1,23 @@
-// src/utils/passwordManager.js
+// src/utils/passwordManager.js - Improved version
 
-const SALT = 'chalk-app-password-salt';
+const ENCRYPTION_CONFIG = {
+  iterations: 100000,  
+  hashLength: 32,     
+  digest: 'SHA-256'
+};
+
+const getDeviceSalt = () => {
+  let deviceSalt = localStorage.getItem('chalk-device-salt');
+  if (!deviceSalt) {
+    const randomBytes = new Uint8Array(16);
+    window.crypto.getRandomValues(randomBytes);
+    deviceSalt = Array.from(randomBytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    localStorage.setItem('chalk-device-salt', deviceSalt);
+  }
+  return deviceSalt;
+};
 
 export const isPasswordProtected = () => {
   return localStorage.getItem('chalk-password-hash') !== null;
@@ -8,50 +25,80 @@ export const isPasswordProtected = () => {
 
 async function hashPassword(password) {
   const encoder = new TextEncoder();
-  const data = encoder.encode(password + SALT);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const salt = getDeviceSalt();
+  const passwordData = encoder.encode(password + salt);
+  
+  const keyMaterial = await window.crypto.subtle.importKey(
+    'raw',
+    passwordData,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+  
+  const hashBuffer = await window.crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: encoder.encode(salt),
+      iterations: ENCRYPTION_CONFIG.iterations,
+      hash: ENCRYPTION_CONFIG.digest
+    },
+    keyMaterial,
+    ENCRYPTION_CONFIG.hashLength * 8
+  );
+  
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex;
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 export const verifyPassword = async (password) => {
   if (!isPasswordProtected()) return true;
   
-  const storedHash = localStorage.getItem('chalk-password-hash');
-  const inputHash = await hashPassword(password);
-  return storedHash === inputHash;
+  try {
+    const storedHash = localStorage.getItem('chalk-password-hash');
+    const inputHash = await hashPassword(password);
+    return storedHash === inputHash;
+  } catch (error) {
+    console.error('Error verifying password:', error);
+    return false;
+  }
 };
 
 export const setPassword = async (password) => {
-  if (!password) {
-    localStorage.removeItem('chalk-password-hash');
+  try {
+    if (!password) {
+      localStorage.removeItem('chalk-password-hash');
+      return true;
+    }
+    
+    const hash = await hashPassword(password);
+    localStorage.setItem('chalk-password-hash', hash);
     return true;
+  } catch (error) {
+    console.error('Error setting password:', error);
+    return false;
   }
-  
-  const hash = await hashPassword(password);
-  localStorage.setItem('chalk-password-hash', hash);
-  return true;
 };
 
-async function getKeyFromPassword(password) {
+async function getEncryptionKey(password) {
   const encoder = new TextEncoder();
-  const data = encoder.encode(password + SALT);
+  const salt = getDeviceSalt();
+  const passwordData = encoder.encode(password + salt);
   
-  const keyMaterial = await crypto.subtle.importKey(
+  const keyMaterial = await window.crypto.subtle.importKey(
     'raw', 
-    data,
+    passwordData,
     { name: 'PBKDF2' },
     false,
     ['deriveBits', 'deriveKey']
   );
   
-  return crypto.subtle.deriveKey(
+  return window.crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: encoder.encode(SALT),
-      iterations: 100000,
-      hash: 'SHA-256'
+      salt: encoder.encode(salt),
+      iterations: ENCRYPTION_CONFIG.iterations,
+      hash: ENCRYPTION_CONFIG.digest
     },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
@@ -63,34 +110,41 @@ async function getKeyFromPassword(password) {
 export const encryptData = async (data, password) => {
   if (!password) return data;
   
-  const key = await getKeyFromPassword(password);
-  const encoder = new TextEncoder();
-  const encodedData = encoder.encode(JSON.stringify(data));
-  
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encryptedContent = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    encodedData
-  );
-  
-  return {
-    iv: Array.from(iv),
-    encryptedData: Array.from(new Uint8Array(encryptedContent))
-  };
+  try {
+    const key = await getEncryptionKey(password);
+    const encoder = new TextEncoder();
+    const encodedData = encoder.encode(JSON.stringify(data));
+    
+    const iv = new Uint8Array(12);
+    window.crypto.getRandomValues(iv);
+    
+    const encryptedContent = await window.crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encodedData
+    );
+    
+    return {
+      iv: Array.from(iv),
+      encryptedData: Array.from(new Uint8Array(encryptedContent))
+    };
+  } catch (error) {
+    console.error('Encryption error:', error);
+    throw new Error('Failed to encrypt data');
+  }
 };
 
 export const decryptData = async (encryptedData, password) => {
-  if (!password || !encryptedData.iv || !encryptedData.encryptedData) {
+  if (!password || !encryptedData?.iv || !encryptedData?.encryptedData) {
     return encryptedData;
   }
   
   try {
-    const key = await getKeyFromPassword(password);
+    const key = await getEncryptionKey(password);
     const iv = new Uint8Array(encryptedData.iv);
     const encryptedContent = new Uint8Array(encryptedData.encryptedData);
     
-    const decryptedContent = await crypto.subtle.decrypt(
+    const decryptedContent = await window.crypto.subtle.decrypt(
       { name: 'AES-GCM', iv },
       key,
       encryptedContent

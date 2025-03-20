@@ -49,16 +49,35 @@ const App = () => {
   useEffect(() => {
     const init = async () => {
       try {
+        setIsLoaded(false);
+        
+        const initTimeout = setTimeout(() => {
+          console.error('Store initialization timed out');
+          setIsLoaded(true);
+          addNotification({
+            type: 'error',
+            title: 'Initialization Error',
+            message: 'Failed to initialize app data. Please refresh the page.',
+            duration: 0 
+          });
+        }, 15000);
+        
         await initializeStore();
+        clearTimeout(initTimeout);
         console.log('Store initialized');
+        
         const savedTheme = initializeTheme();
         setCurrentTheme(savedTheme);
         
         refreshGroups();
 
-        const savedAchievements = localStorage.getItem('chalk-achievements');
-        if (savedAchievements) {
-          setAchievements(JSON.parse(savedAchievements));
+        try {
+          const savedAchievements = localStorage.getItem('chalk-achievements');
+          if (savedAchievements) {
+            setAchievements(JSON.parse(savedAchievements));
+          }
+        } catch (achievementsError) {
+          console.error('Error loading achievements:', achievementsError);
         }
         
         const unsubscribe = subscribeToChanges(() => {
@@ -75,6 +94,12 @@ const App = () => {
       } catch (error) {
         console.error('Error initializing store:', error);
         setIsLoaded(true);
+        addNotification({
+          type: 'error',
+          title: 'Initialization Error',
+          message: 'Failed to initialize app data: ' + error.message,
+          duration: 0 
+        });
       }
     };
     
