@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 const AchievementsView = ({ 
   groups, 
@@ -28,9 +28,9 @@ const AchievementsView = ({
   
   useEffect(() => {
     calculateStats();
-  }, [groups, streakData]);
+  }, [calculateStats]);
   
-  const calculateStats = () => {
+  const calculateStats = useCallback(() => {
     let tasksCreated = 0;
     let tasksCompleted = 0;
     let boardsCreated = 0;
@@ -102,18 +102,30 @@ const AchievementsView = ({
       perfectWeeks,
       level: calculateLevel(tasksCompleted)
     });
-    
+  }, [groups, getBoards, getColumns, getTasks, streakData]);
+
+  useEffect(() => {
     generateAchievements(
-      tasksCreated, 
-      tasksCompleted, 
-      streakDays, 
-      longestStreak,
-      boardsCreated, 
-      totalMoves, 
-      weekendCompletions.length,
-      perfectWeeks
+      stats.tasksCreated, 
+      stats.tasksCompleted, 
+      stats.streakDays, 
+      stats.longestStreak,
+      stats.boardsCreated, 
+      stats.totalMoves, 
+      stats.weekendWarrior,
+      stats.perfectWeeks
     );
-  };
+  }, [
+    generateAchievements,
+    stats.tasksCreated, 
+    stats.tasksCompleted, 
+    stats.streakDays, 
+    stats.longestStreak,
+    stats.boardsCreated, 
+    stats.totalMoves, 
+    stats.weekendWarrior,
+    stats.perfectWeeks
+  ]);
   
   const calculatePerfectWeeks = (dates) => {
     // kiv,  need to group dates by week and count
@@ -121,10 +133,8 @@ const AchievementsView = ({
     
     const sortedDates = dates.map(d => new Date(d)).sort((a, b) => a - b);
     
-    // Group by week
     const weekMap = {};
     sortedDates.forEach(date => {
-      // Get week number (simplified approach)
       const year = date.getFullYear();
       const weekNum = Math.floor((date - new Date(year, 0, 1)) / (7 * 24 * 60 * 60 * 1000));
       const weekKey = `${year}-${weekNum}`;
@@ -142,14 +152,14 @@ const AchievementsView = ({
     return Math.floor(tasksCompleted / 10) + 1;
   };
   
-  const generateAchievements = (
+  const generateAchievements = useCallback((
     tasksCreated, 
     tasksCompleted, 
     streakDays, 
-    longestStreak,
+    longestStreak, 
     boardsCreated, 
     totalMoves, 
-    weekendCompletions,
+    weekendCompletions, 
     perfectWeeks
   ) => {
     const earnedAchievementsMap = {};
@@ -356,8 +366,25 @@ const AchievementsView = ({
       }
     ];
     
-    setAchievements(newAchievements);
-  };
+    let hasChanged = newAchievements.length !== achievements.length;
+  
+    if (!hasChanged) {
+      for (let i = 0; i < newAchievements.length; i++) {
+        const newAchievement = newAchievements[i];
+        const oldAchievement = achievements[i];
+        
+        if (newAchievement.unlocked !== oldAchievement?.unlocked ||
+            newAchievement.progress !== oldAchievement?.progress) {
+          hasChanged = true;
+          break;
+        }
+      }
+    }
+      
+    if (hasChanged) {
+      setAchievements(newAchievements);
+    }
+  }, [earnedAchievements, achievements]);
   
   const calculateProgress = (current, max) => {
     return Math.min(100, Math.floor((current / max) * 100));
@@ -376,7 +403,7 @@ const AchievementsView = ({
     };
   };
   
-  const groupedAchievements = () => {
+  const groupedAchievements = useMemo(() => {
     const groups = {};
     
     achievements.forEach(achievement => {
@@ -387,7 +414,7 @@ const AchievementsView = ({
     });
     
     return groups;
-  };
+  }, [achievements]);
   
   const levelData = calculateXP(stats.tasksCompleted);
   
@@ -477,7 +504,7 @@ const AchievementsView = ({
       </div>
       
       <div className="space-y-8">
-        {Object.entries(groupedAchievements()).map(([category, categoryAchievements]) => (
+        {Object.entries(groupedAchievements).map(([category, categoryAchievements]) => (
           <div key={category} className="bg-gray-800 rounded-lg border border-gray-700 p-4">
             <h3 className="text-white font-medium capitalize mb-4">{category} Achievements</h3>
             
@@ -530,7 +557,7 @@ const AchievementsView = ({
         ))}
       </div>
       
-      <style jsx>{`
+      <style>{`
         @keyframes icon-bounce {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-5px); }

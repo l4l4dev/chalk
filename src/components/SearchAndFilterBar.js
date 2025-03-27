@@ -1,5 +1,5 @@
-// src/components/SearchAndFilterBar.js
 import React, { useState, useRef, useEffect } from 'react';
+import { debounce } from 'lodash';
 
 const SearchAndFilterBar = ({ 
   onSearch, 
@@ -21,6 +21,25 @@ const SearchAndFilterBar = ({
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
   
+  const debouncedSearch = useRef(
+    debounce((term) => {
+      onSearch(term);
+    }, 300) 
+  ).current;
+  
+  const debouncedFilter = useRef(
+    debounce((newFilters) => {
+      onFilter(newFilters);
+    }, 300) 
+  ).current;
+  
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+      debouncedFilter.cancel();
+    };
+  }, [debouncedSearch, debouncedFilter]);
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -37,7 +56,7 @@ const SearchAndFilterBar = ({
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchText(value);
-    onSearch(value);
+    debouncedSearch(value);
   };
   
   const handleFilterChange = (filterType, value) => {
@@ -46,7 +65,7 @@ const SearchAndFilterBar = ({
       [filterType]: value
     };
     setFilters(newFilters);
-    onFilter(newFilters);
+    debouncedFilter(newFilters);
   };
   
   const handleLabelToggle = (label) => {

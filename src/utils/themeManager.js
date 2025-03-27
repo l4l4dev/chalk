@@ -18,22 +18,22 @@ export const applyTheme = (theme) => {
   
   localStorage.setItem('chalk-theme', theme);
   
-  switch(theme) {
+  switch(theme) { 
     case THEMES.LIGHT:
-      document.documentElement.style.setProperty('--bg-primary', '#f9fafb');
-      document.documentElement.style.setProperty('--bg-secondary', '#f3f4f6');
-      document.documentElement.style.setProperty('--bg-tertiary', '#e5e7eb');
-      document.documentElement.style.setProperty('--text-primary', '#111827');
-      document.documentElement.style.setProperty('--text-secondary', '#4b5563');
-      document.documentElement.style.setProperty('--border-color', '#d1d5db');
+      document.documentElement.style.setProperty('--bg-primary', '#f0f4f8');   
+      document.documentElement.style.setProperty('--bg-secondary', '#e1e8ed'); 
+      document.documentElement.style.setProperty('--bg-tertiary', '#d6e0e8');  
+      document.documentElement.style.setProperty('--text-primary', '#2d3748'); 
+      document.documentElement.style.setProperty('--text-secondary', '#4a5568');
+      document.documentElement.style.setProperty('--border-color', '#cbd5e0');
       break;
     case THEMES.NEON:
-      document.documentElement.style.setProperty('--bg-primary', '#0f172a');
-      document.documentElement.style.setProperty('--bg-secondary', '#1e293b');
-      document.documentElement.style.setProperty('--bg-tertiary', '#334155');
-      document.documentElement.style.setProperty('--text-primary', '#f0f9ff');
-      document.documentElement.style.setProperty('--text-secondary', '#94a3b8');
-      document.documentElement.style.setProperty('--border-color', '#334155');
+      document.documentElement.style.setProperty('--bg-primary', '#0a0120');      
+      document.documentElement.style.setProperty('--bg-secondary', '#12033a');    
+      document.documentElement.style.setProperty('--bg-tertiary', '#1f0650');     
+      document.documentElement.style.setProperty('--text-primary', '#00fff2');   
+      document.documentElement.style.setProperty('--text-secondary', '#fe01e6');
+      document.documentElement.style.setProperty('--border-color', '#39ff14');
       break;
     case THEMES.DARK:
     default:

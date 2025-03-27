@@ -13,88 +13,113 @@ const columnsMap = ydoc.getMap('columns');
 const tasksMap = ydoc.getMap('tasks');
 const workspaceItemsMap = ydoc.getMap('workspaceItems');
 
+const cacheConfig = {
+  ttl: 2000, 
+  boardsCache: new Map(),
+  columnsCache: new Map(),
+  clearCaches: () => {
+    cacheConfig.boardsCache.clear();
+    cacheConfig.columnsCache.clear();
+  }
+};
 
 export const initializeStore = () => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Database sync timed out after 15 seconds'));
+    }, 15000);
+    
     persistence.on('synced', () => {
+      clearTimeout(timeoutId);
       console.log('Data synced with IndexedDB');
       
-      if (groupsMap.size === 0) {
-        console.log('Creating default data');
+      try {
+        if (groupsMap.size === 0) {
+          console.log('Creating default data');
+          
+          const defaultGroupId = uuidv4();
+          const defaultGroup = {
+            id: defaultGroupId,
+            name: 'Personal',
+            description: 'My personal tasks',
+            createdAt: new Date().toISOString(),
+            boardIds: []
+          };
+          
+          const defaultBoardId = uuidv4();
+          const defaultBoard = {
+            id: defaultBoardId,
+            name: 'My Tasks',
+            description: 'Daily tasks tracker',
+            groupId: defaultGroupId,
+            createdAt: new Date().toISOString(),
+            columnIds: []
+          };
+          
+          const todoColumnId = uuidv4();
+          const todoColumn = {
+            id: todoColumnId,
+            name: 'To Do',
+            boardId: defaultBoardId,
+            taskIds: [],
+            order: 0
+          };
+          
+          const inProgressColumnId = uuidv4();
+          const inProgressColumn = {
+            id: inProgressColumnId,
+            name: 'In Progress',
+            boardId: defaultBoardId,
+            taskIds: [],
+            order: 1
+          };
+          
+          const doneColumnId = uuidv4();
+          const doneColumn = {
+            id: doneColumnId,
+            name: 'Done',
+            boardId: defaultBoardId,
+            taskIds: [],
+            order: 2
+          };
+          
+          defaultGroup.boardIds = [defaultBoardId];
+          defaultBoard.columnIds = [todoColumnId, inProgressColumnId, doneColumnId];
+          
+          groupsMap.set(defaultGroupId, defaultGroup);
+          boardsMap.set(defaultBoardId, defaultBoard);
+          columnsMap.set(todoColumnId, todoColumn);
+          columnsMap.set(inProgressColumnId, inProgressColumn);
+          columnsMap.set(doneColumnId, doneColumn);
+          
+          const sampleTaskId = uuidv4();
+          const sampleTask = {
+            id: sampleTaskId,
+            content: 'Welcome to Chalk! Drag this task to another column.',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            columnId: todoColumnId
+          };
+          
+          tasksMap.set(sampleTaskId, sampleTask);
+          
+          todoColumn.taskIds = [sampleTaskId];
+          columnsMap.set(todoColumnId, todoColumn);
+        } else {
+          console.log('Using existing data');
+        }
         
-        const defaultGroupId = uuidv4();
-        const defaultGroup = {
-          id: defaultGroupId,
-          name: 'Personal',
-          description: 'My personal tasks',
-          createdAt: new Date().toISOString(),
-          boardIds: []
-        };
-        
-        const defaultBoardId = uuidv4();
-        const defaultBoard = {
-          id: defaultBoardId,
-          name: 'My Tasks',
-          description: 'Daily tasks tracker',
-          groupId: defaultGroupId,
-          createdAt: new Date().toISOString(),
-          columnIds: []
-        };
-        
-        const todoColumnId = uuidv4();
-        const todoColumn = {
-          id: todoColumnId,
-          name: 'To Do',
-          boardId: defaultBoardId,
-          taskIds: [],
-          order: 0
-        };
-        
-        const inProgressColumnId = uuidv4();
-        const inProgressColumn = {
-          id: inProgressColumnId,
-          name: 'In Progress',
-          boardId: defaultBoardId,
-          taskIds: [],
-          order: 1
-        };
-        
-        const doneColumnId = uuidv4();
-        const doneColumn = {
-          id: doneColumnId,
-          name: 'Done',
-          boardId: defaultBoardId,
-          taskIds: [],
-          order: 2
-        };
-        
-        defaultGroup.boardIds = [defaultBoardId];
-        defaultBoard.columnIds = [todoColumnId, inProgressColumnId, doneColumnId];
-        
-        groupsMap.set(defaultGroupId, defaultGroup);
-        boardsMap.set(defaultBoardId, defaultBoard);
-        columnsMap.set(todoColumnId, todoColumn);
-        columnsMap.set(inProgressColumnId, inProgressColumn);
-        columnsMap.set(doneColumnId, doneColumn);
-        
-        const sampleTaskId = uuidv4();
-        const sampleTask = {
-          id: sampleTaskId,
-          content: 'Welcome to Chalk! Drag this task to another column.',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          columnId: todoColumnId
-        };
-        
-        tasksMap.set(sampleTaskId, sampleTask);
-        
-        todoColumn.taskIds = [sampleTaskId];
-        columnsMap.set(todoColumnId, todoColumn);
-      } else {
-        console.log('Using existing data');
+        resolve();
+      } catch (error) {
+        console.error('Error setting up initial data:', error);
+        reject(error);
       }
-      
-      resolve();
+    });
+    
+    persistence.on('error', (error) => {
+      clearTimeout(timeoutId);
+      console.error('IndexedDB sync error:', error);
+      reject(error);
     });
   });
 };
@@ -251,14 +276,31 @@ export const createBoard = (groupId, name, description = '') => {
   updatedGroup.boardIds.push(id);
   groupsMap.set(groupId, updatedGroup);
   
+  invalidateCache('group', groupId);
+
   return id;
 };
 
 export const getBoards = (groupId) => {
-  return Array.from(boardsMap.values())
+  const cacheKey = `group_${groupId}`;
+  const cachedData = cacheConfig.boardsCache.get(cacheKey);
+  
+  if (cachedData && (Date.now() - cachedData.timestamp < cacheConfig.ttl)) {
+    return cachedData.data;
+  }
+  
+  const boards = Array.from(boardsMap.values())
     .filter(board => board.groupId === groupId)
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  
+  cacheConfig.boardsCache.set(cacheKey, {
+    data: boards,
+    timestamp: Date.now()
+  });
+  
+  return boards;
 };
+
 
 export const getBoard = (id) => {
   return boardsMap.get(id);
@@ -321,9 +363,37 @@ export const createColumn = (boardId, name) => {
 };
 
 export const getColumns = (boardId) => {
-  return Array.from(columnsMap.values())
+  const cacheKey = `board_${boardId}`;
+  const cachedData = cacheConfig.columnsCache.get(cacheKey);
+  
+  if (cachedData && (Date.now() - cachedData.timestamp < cacheConfig.ttl)) {
+    return cachedData.data;
+  }
+  
+  const columns = Array.from(columnsMap.values())
     .filter(column => column.boardId === boardId)
     .sort((a, b) => a.order - b.order);
+  
+  cacheConfig.columnsCache.set(cacheKey, {
+    data: columns,
+    timestamp: Date.now()
+  });
+  
+  return columns;
+};
+
+const invalidateCache = (type, id) => {
+  switch(type) {
+    case 'board':
+      cacheConfig.columnsCache.delete(`board_${id}`);
+      break;
+    case 'group':
+      cacheConfig.boardsCache.delete(`group_${id}`);
+      break;
+    case 'all':
+      cacheConfig.clearCaches();
+      break;
+  }
 };
 
 export const getColumn = (id) => {
@@ -360,15 +430,25 @@ export const deleteColumn = (id) => {
   return true;
 };
 
-/**
- * Task CRUD operations
- */
 export const createTask = (columnId, content, details = {}) => {
+  if (!columnId) {
+    console.error('Create task failed: Missing column ID');
+    return null;
+  }
+  
+  if (!content || content.trim() === '') {
+    console.error('Create task failed: Empty task content');
+    return null;
+  }
+  
   const column = columnsMap.get(columnId);
-  if (!column) return null;
+  if (!column) {
+    console.error('Create task failed: Column not found', columnId);
+    return null;
+  }
   
   const id = uuidv4();
-  const columnName = column ? column.name.trim().toLowerCase() : '';
+  const columnName = column.name.trim().toLowerCase();
   const isInDone = columnName === 'done' || columnName === 'completed' || columnName === 'finished';
   const isInProgress = columnName === 'in progress' || columnName === 'doing' || columnName === 'working' || columnName === 'started';
   const isInTodo = columnName === 'to do' || columnName === 'todo' || columnName === 'backlog' || columnName === 'planned';
@@ -387,6 +467,17 @@ export const createTask = (columnId, content, details = {}) => {
     initialPercentComplete = 5;
   }
 
+  const safeDetails = {
+    dueDate: details.dueDate || null,
+    priority: ['low', 'medium', 'high'].includes(details.priority) ? details.priority : 'medium',
+    labels: Array.isArray(details.labels) ? details.labels : [],
+    assignedTo: details.assignedTo || null,
+    description: details.description || '',
+    attachments: Array.isArray(details.attachments) ? details.attachments : [],
+    estimatedTime: details.estimatedTime || null,
+    actualTime: details.actualTime || null,
+  };
+
   const task = {
     id,
     content,
@@ -394,39 +485,55 @@ export const createTask = (columnId, content, details = {}) => {
     updatedAt: new Date().toISOString(),
     columnId,
     columnStatus,  
-    dueDate: details.dueDate || null,
-    priority: details.priority || 'medium', // low, medium, high
-    labels: details.labels || [],
-    assignedTo: details.assignedTo || null,
-    description: details.description || '',
-    attachments: details.attachments || [],
     completed: initialCompleted,
     percentComplete: initialPercentComplete,
-    estimatedTime: details.estimatedTime || null,
-    actualTime: details.actualTime || null,
     comments: [],
     movementHistory: [], 
     timeInColumns: {},
-    lastColumnChange: new Date().toISOString(), 
+    lastColumnChange: new Date().toISOString(),
+    ...safeDetails
   };
   
-  tasksMap.set(id, task);
-  
-  const updatedColumn = { ...column };
-  if (!updatedColumn.taskIds) {
-    updatedColumn.taskIds = [];
+  try {
+    ydoc.transact(() => {
+      tasksMap.set(id, task);
+      
+      const updatedColumn = { ...column };
+      if (!updatedColumn.taskIds) {
+        updatedColumn.taskIds = [];
+      }
+      updatedColumn.taskIds.push(id);
+      columnsMap.set(columnId, updatedColumn);
+    });
+    
+    return id;
+  } catch (error) {
+    console.error('Error creating task:', error);
+    return null;
   }
-  updatedColumn.taskIds.push(id);
-  columnsMap.set(columnId, updatedColumn);
-  
-  return id;
 };
 
 export const getTasks = (columnId) => {
   const column = columnsMap.get(columnId);
   if (!column || !column.taskIds || !Array.isArray(column.taskIds)) return [];
   
-  return column.taskIds.map(taskId => tasksMap.get(taskId)).filter(Boolean);
+  if (column.taskIds.length === 0) return [];
+  
+  const result = [];
+  for (const taskId of column.taskIds) {
+    const task = tasksMap.get(taskId);
+    if (task) {
+      result.push(task);
+    } else {
+      console.warn(`Task ID ${taskId} referenced in column ${columnId} but not found in tasks map`);
+    }
+  }
+  
+  if (result.length !== column.taskIds.length) {
+    console.warn(`Column ${columnId} has ${column.taskIds.length} task IDs but only ${result.length} valid tasks were found`);
+  }
+  
+  return result;
 };
 
 export const getTask = (id) => {
@@ -447,82 +554,181 @@ export const updateTask = (id, updates) => {
 };
 
 export const deleteTask = (id) => {
-  const task = tasksMap.get(id);
+  try {
+    if (!id) {
+      console.error('Delete task failed: Missing task ID');
+      return false;
+    }
+    
+    const task = tasksMap.get(id);
+    if (!task) {
+      console.warn('Delete task failed: Task not found', id);
+      return false;
+    }
+    
+    const columnId = task.columnId;
+    if (!columnId) {
+      console.warn('Task has no column reference', id);
+      tasksMap.delete(id);
+      return true;
+    }
+    
+    const column = columnsMap.get(columnId);
+    
+    ydoc.transact(() => {
+      if (column && column.taskIds && Array.isArray(column.taskIds)) {
+        const updatedColumn = { ...column };
+        updatedColumn.taskIds = updatedColumn.taskIds.filter(taskId => taskId !== id);
+        columnsMap.set(columnId, updatedColumn);
+      } else {
+        console.warn(`Column ${columnId} not found or has no task IDs array`);
+      }
+      
+      tasksMap.delete(id);
+    });
+    
+    console.log(`Task ${id} deleted successfully`);
+    return true;
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    return false;
+  }
+};
+
+export const linkTaskToDocument = (taskId, documentId) => {
+  const task = tasksMap.get(taskId);
   if (!task) return false;
   
-  const column = columnsMap.get(task.columnId);
-  if (column && column.taskIds && Array.isArray(column.taskIds)) {
-    const updatedColumn = { ...column };
-    updatedColumn.taskIds = updatedColumn.taskIds.filter(taskId => taskId !== id);
-    columnsMap.set(task.columnId, updatedColumn);
+  const updatedTask = { ...task };
+  if (!updatedTask.linkedDocuments) {
+    updatedTask.linkedDocuments = [];
   }
   
-  tasksMap.delete(id);
-  return true;
+  if (!updatedTask.linkedDocuments.includes(documentId)) {
+    updatedTask.linkedDocuments.push(documentId);
+    tasksMap.set(taskId, updatedTask);
+    return true;
+  }
+  
+  return false;
+};
+
+export const getLinkedDocumentsForTask = (taskId) => {
+  const task = tasksMap.get(taskId);
+  if (!task || !task.linkedDocuments) return [];
+  
+  return task.linkedDocuments.map(docId => workspaceItemsMap.get(docId))
+    .filter(Boolean);
+};
+
+export const getDocumentTitle = (documentId) => {
+  const doc = workspaceItemsMap.get(documentId);
+  if (!doc) return null;
+  
+  const headingMatch = doc.content.match(/^# (.+)$/m);
+  return headingMatch ? headingMatch[1] : 'Untitled Document';
 };
 
 
 export const moveTask = (taskId, sourceColumnId, destinationColumnId, sourceIndex, destinationIndex) => {
-  const task = tasksMap.get(taskId);
-  const sourceColumn = columnsMap.get(sourceColumnId);
-  const destinationColumn = columnsMap.get(destinationColumnId);
-  
-  if (!task || !sourceColumn || !destinationColumn) return false;
-  
-  if (!sourceColumn.taskIds) sourceColumn.taskIds = [];
-  if (!destinationColumn.taskIds) destinationColumn.taskIds = [];
-  
-  const updatedSourceColumn = { ...sourceColumn };
-  const updatedDestinationColumn = { ...destinationColumn };
-  
-  updatedSourceColumn.taskIds = updatedSourceColumn.taskIds.filter(id => id !== taskId);
-  updatedDestinationColumn.taskIds = [...updatedDestinationColumn.taskIds];
-  updatedDestinationColumn.taskIds.splice(destinationIndex, 0, taskId);
-  
-  const now = new Date().toISOString();
-  const updatedTask = { 
-    ...task, 
-    columnId: destinationColumnId,
-    updatedAt: now
-  };
-  
-  const destColumnName = destinationColumn.name.trim().toLowerCase();
-  const isMovingToDone = destColumnName === 'done' || destColumnName === 'completed' || destColumnName === 'finished';
-  const isMovingToInProgress = destColumnName === 'in progress' || destColumnName === 'doing' || destColumnName === 'working' || destColumnName === 'started';
-  const isMovingToTodo = destColumnName === 'to do' || destColumnName === 'todo' || destColumnName === 'backlog' || destColumnName === 'planned';
-  
-  updatedTask.columnStatus = isMovingToDone ? 'done' : 
-                             isMovingToInProgress ? 'in-progress' : 
-                             isMovingToTodo ? 'todo' : 'other';
-  
-  if (isMovingToDone) {
-    updatedTask.completed = true;
-    updatedTask.percentComplete = 100;
-  } else if (isMovingToInProgress && (!updatedTask.percentComplete || updatedTask.percentComplete === 0)) {
-    updatedTask.percentComplete = 5; 
-    updatedTask.completed = false;
-  } else if (isMovingToTodo) {
-    updatedTask.percentComplete = 0;
-    updatedTask.completed = false;
-  }
-  
-  if (sourceColumnId !== destinationColumnId) {
-    const timeInColumns = { ...updatedTask.timeInColumns } || {};
-    const lastColumnChange = new Date(updatedTask.lastColumnChange || updatedTask.createdAt);
-    const timeSpentMs = new Date(now) - lastColumnChange;
+  try {
+    const task = tasksMap.get(taskId);
+    const sourceColumn = columnsMap.get(sourceColumnId);
+    const destinationColumn = columnsMap.get(destinationColumnId);
     
-    timeInColumns[sourceColumnId] = (timeInColumns[sourceColumnId] || 0) + timeSpentMs;
-    updatedTask.timeInColumns = timeInColumns;
-    updatedTask.lastColumnChange = now;
+    if (!task) {
+      console.error('Move task failed: Task not found', taskId);
+      return false;
+    }
+    
+    if (!sourceColumn) {
+      console.error('Move task failed: Source column not found', sourceColumnId);
+      return false;
+    }
+    
+    if (!destinationColumn) {
+      console.error('Move task failed: Destination column not found', destinationColumnId);
+      return false;
+    }
+    
+    if (!sourceColumn.taskIds) sourceColumn.taskIds = [];
+    if (!destinationColumn.taskIds) destinationColumn.taskIds = [];
+    
+    const updatedSourceColumn = { ...sourceColumn };
+    const updatedDestinationColumn = { ...destinationColumn };
+    
+    updatedSourceColumn.taskIds = updatedSourceColumn.taskIds.filter(id => id !== taskId);
+    
+    updatedDestinationColumn.taskIds = [...updatedDestinationColumn.taskIds];
+    
+    const safeDestinationIndex = Math.max(0, Math.min(destinationIndex, updatedDestinationColumn.taskIds.length));
+    updatedDestinationColumn.taskIds.splice(safeDestinationIndex, 0, taskId);
+    
+    const now = new Date().toISOString();
+    const updatedTask = { 
+      ...task, 
+      columnId: destinationColumnId,
+      updatedAt: now
+    };
+    
+    const destColumnName = destinationColumn.name.trim().toLowerCase();
+    const isMovingToDone = destColumnName === 'done' || destColumnName === 'completed' || destColumnName === 'finished';
+    const isMovingToInProgress = destColumnName === 'in progress' || destColumnName === 'doing' || destColumnName === 'working' || destColumnName === 'started';
+    const isMovingToTodo = destColumnName === 'to do' || destColumnName === 'todo' || destColumnName === 'backlog' || destColumnName === 'planned';
+    
+    updatedTask.columnStatus = isMovingToDone ? 'done' : 
+                               isMovingToInProgress ? 'in-progress' : 
+                               isMovingToTodo ? 'todo' : 'other';
+    
+    if (isMovingToDone) {
+      updatedTask.completed = true;
+      updatedTask.percentComplete = 100;
+    } else if (isMovingToInProgress && (!updatedTask.percentComplete || updatedTask.percentComplete === 0)) {
+      updatedTask.percentComplete = 5; 
+      updatedTask.completed = false;
+    } else if (isMovingToTodo) {
+      updatedTask.percentComplete = 0;
+      updatedTask.completed = false;
+    }
+    
+    if (sourceColumnId !== destinationColumnId) {
+      const timeInColumns = { ...updatedTask.timeInColumns } || {};
+      const lastColumnChange = new Date(updatedTask.lastColumnChange || updatedTask.createdAt);
+      
+      let timeSpentMs;
+      try {
+        timeSpentMs = new Date(now) - lastColumnChange;
+        if (isNaN(timeSpentMs) || timeSpentMs < 0) {
+          console.warn('Invalid time calculation, using 0 instead');
+          timeSpentMs = 0;
+        }
+      } catch (err) {
+        console.warn('Error calculating time spent in column:', err);
+        timeSpentMs = 0;
+      }
+      
+      timeInColumns[sourceColumnId] = (timeInColumns[sourceColumnId] || 0) + timeSpentMs;
+      updatedTask.timeInColumns = timeInColumns;
+      updatedTask.lastColumnChange = now;
+    }
+    
+    try {
+      ydoc.transact(() => {
+        columnsMap.set(sourceColumnId, updatedSourceColumn);
+        columnsMap.set(destinationColumnId, updatedDestinationColumn);
+        tasksMap.set(taskId, updatedTask);
+      });
+      
+      console.log(`Task ${taskId} moved to "${destinationColumn.name}", completed = ${updatedTask.completed}, percentComplete = ${updatedTask.percentComplete}`);
+      return true;
+    } catch (transactionError) {
+      console.error('Transaction failed while moving task:', transactionError);
+      return false;
+    }
+  } catch (error) {
+    console.error('Unexpected error while moving task:', error);
+    return false;
   }
-  
-  columnsMap.set(sourceColumnId, updatedSourceColumn);
-  columnsMap.set(destinationColumnId, updatedDestinationColumn);
-  tasksMap.set(taskId, updatedTask);
-  
-  console.log(`Task ${taskId} moved to "${destinationColumn.name}", completed = ${updatedTask.completed}, percentComplete = ${updatedTask.percentComplete}`);
-  
-  return true;
 };
 
 export const getColumnName = (columnId) => {
@@ -557,6 +763,17 @@ export const getTaskAnalytics = (taskId) => {
   const task = tasksMap.get(taskId);
   if (!task) return null;
   
+  if (!window._taskAnalyticsCache) {
+    window._taskAnalyticsCache = new WeakMap();
+  }
+  
+  if (window._taskAnalyticsCache.has(task)) {
+    const cachedData = window._taskAnalyticsCache.get(task);
+    if (cachedData.updatedAt === task.updatedAt) {
+      return cachedData.analytics;
+    }
+  }
+  
   const totalTimeMs = Object.values(task.timeInColumns || {}).reduce((sum, time) => sum + time, 0);
   
   const startDate = new Date(task.createdAt);
@@ -576,7 +793,7 @@ export const getTaskAnalytics = (taskId) => {
   const currentColumn = columnsMap.get(task.columnId);
   const currentStatus = currentColumn ? currentColumn.name : 'Unknown';
   
-  return {
+  const analytics = {
     totalTimeMs,
     totalTimeDays: totalTimeMs / (1000 * 60 * 60 * 24),
     cycleTimeMs,
@@ -587,6 +804,13 @@ export const getTaskAnalytics = (taskId) => {
     completed: task.completed,
     priority: task.priority
   };
+  
+  window._taskAnalyticsCache.set(task, {
+    updatedAt: task.updatedAt,
+    analytics
+  });
+  
+  return analytics;
 };
 
 export const getBoardAnalytics = (boardId) => {

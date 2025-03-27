@@ -34,6 +34,8 @@ import SettingsView from './components/SettingsView';
 import PasswordDialog from './components/PasswordDialog';
 import { isAppUnlocked } from './utils/passwordManager';
 import { initializeTheme, applyTheme, THEMES } from './utils/themeManager';
+import BacklogView from './components/BacklogView';
+import { setupStaleTaskScheduler } from './utils/backlogManager';
 
 const App = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -45,6 +47,7 @@ const App = () => {
   const [notifications, setNotifications] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [appLocked, setAppLocked] = useState(!isAppUnlocked());
+  const [backlogSchedulerActive, setBacklogSchedulerActive] = useState(true);
 
   useEffect(() => {
     const init = async () => {
@@ -70,7 +73,7 @@ const App = () => {
         setCurrentTheme(savedTheme);
         
         refreshGroups();
-
+  
         try {
           const savedAchievements = localStorage.getItem('chalk-achievements');
           if (savedAchievements) {
@@ -86,10 +89,29 @@ const App = () => {
           checkForNewAchievements();
         });
         
+        let cancelScheduler = () => {}; 
+        
+        if (backlogSchedulerActive) {
+          cancelScheduler = setupStaleTaskScheduler(
+            24 * 60 * 60 * 1000,
+            (stats) => {
+              if (stats.tasksMovedToBacklog > 0) {
+                addNotification({
+                  type: 'info',
+                  title: 'Backlog Updated',
+                  message: `${stats.tasksMovedToBacklog} stale tasks moved to backlog`,
+                  duration: 5000
+                });
+              }
+            }
+          );
+        }
+        
         setIsLoaded(true);
         
         return () => {
           unsubscribe();
+          cancelScheduler();
         };
       } catch (error) {
         console.error('Error initializing store:', error);
@@ -104,7 +126,7 @@ const App = () => {
     };
     
     init();
-  }, []);
+  }, [backlogSchedulerActive]);
 
   const handleThemeChange = (theme) => {
     setCurrentTheme(theme);
@@ -281,6 +303,10 @@ const App = () => {
     setCurrentView('groups');
   };
 
+  const handleShowBacklog = () => {
+    setCurrentView('backlog');
+  };  
+
   const handleBackToBoards = () => {
     setCurrentBoardId(null);
     setCurrentView('boards');
@@ -416,6 +442,7 @@ const App = () => {
             onShowSearch={handleShowSearch}
             onShowGraph={handleShowGraph}
             onShowSettings={handleShowSettings}
+            onShowBacklog={handleShowBacklog}
           />
           
           <div className="flex-1 overflow-hidden flex flex-col">
@@ -500,6 +527,20 @@ const App = () => {
                 getTasks={getTasks}
                 onBack={handleBackToGroups}
                 onTaskClick={handleTaskClick}
+              />
+            )}
+
+            {currentView === 'backlog' && (
+              <BacklogView 
+                groups={groups}
+                getBoards={getBoards}
+                getColumns={getColumns}
+                getTasks={getTasks}
+                onMoveTask={handleMoveTask}
+                onUpdateTask={handleUpdateTask}
+                onDeleteTask={handleDeleteTask}
+                onBack={handleBackToGroups}
+                onSelectTask={handleTaskClick}
               />
             )}
             

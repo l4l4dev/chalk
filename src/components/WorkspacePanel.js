@@ -144,7 +144,7 @@ const WorkspacePanel = ({
   };
   
   return (
-    <div className="flex flex-col h-full bg-gray-850 border-l border-gray-700">
+    <div className="flex flex-col h-full bg-gray-850">
       <div className="p-4 border-b border-gray-700">
         <h2 className="text-lg font-medium text-white">Workspace</h2>
         <p className="text-sm text-gray-400 mt-1">
@@ -164,8 +164,8 @@ const WorkspacePanel = ({
             <span>Add Item</span>
           </button>
         ) : (
-          <div className="bg-gray-800 rounded-md p-3 border border-gray-700">
-            <div className="flex border-b border-gray-700 mb-3">
+          <div className="bg-gray-800 rounded-md p-2 sm:p-3 border border-gray-700">
+            <div className="flex border-b border-gray-700 mb-3 text-xs sm:text-sm">
               <button
                 className={`py-2 px-3 text-sm ${newItemType === 'note' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-400'}`}
                 onClick={() => setNewItemType('note')}
@@ -197,8 +197,8 @@ const WorkspacePanel = ({
                 className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
               />
             )}
-            
-            <div className="flex justify-end mt-3 space-x-2">
+
+            <div className="flex flex-wrap justify-end mt-3 gap-2">
               <button
                 className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md"
                 onClick={handleCreateItem}
@@ -228,7 +228,7 @@ const WorkspacePanel = ({
         ) : (
           <div className="space-y-4">
             {workspaceItems.map(item => (
-              <div key={item.id} className="bg-gray-800 rounded-md p-3 border border-gray-700">
+              <div key={item.id} className="bg-gray-800 rounded-md p-2 sm:p-3 border border-gray-700">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center text-indigo-400">
                     {getItemIcon(item.type)}

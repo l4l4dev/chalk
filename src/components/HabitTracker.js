@@ -68,7 +68,7 @@ const HabitTracker = ({
     }, 5000);
   };
 
-  const calculateActivityData = () => {
+  const calculateActivityData = React.useCallback(() => {
     const allTasks = [];
     
     groups.forEach(group => {
@@ -90,7 +90,7 @@ const HabitTracker = ({
         });
       });
     });
-
+  
     const now = new Date();
     let startDate;
     
@@ -107,15 +107,17 @@ const HabitTracker = ({
       startDate = new Date(now);
       startDate.setMonth(now.getMonth() - 1);
     }
-
+  
     const dayOfWeek = startDate.getDay();
     startDate.setDate(startDate.getDate() - dayOfWeek);
     
+    const dateKeys = [];
     const dateMap = {};
-    
     const tempDate = new Date(startDate);
+    
     while (tempDate <= now) {
       const dateKey = tempDate.toISOString().split('T')[0];
+      dateKeys.push(dateKey);
       dateMap[dateKey] = {
         date: new Date(tempDate),
         count: 0,
@@ -124,12 +126,19 @@ const HabitTracker = ({
       tempDate.setDate(tempDate.getDate() + 1);
     }
     
+    const dateMapObj = new Map(Object.entries(dateMap));
+    
     allTasks.forEach(task => {
       const dateKey = task.completedDate.toISOString().split('T')[0];
-      if (dateMap[dateKey]) {
-        dateMap[dateKey].count += 1;
-        dateMap[dateKey].tasks.push(task);
+      const dateEntry = dateMapObj.get(dateKey);
+      if (dateEntry) {
+        dateEntry.count += 1;
+        dateEntry.tasks.push(task);
       }
+    });
+    
+    dateKeys.forEach(key => {
+      dateMap[key] = dateMapObj.get(key);
     });
     
     const weeksData = [];
@@ -198,21 +207,20 @@ const HabitTracker = ({
     for (let i = 0; i < allDays.length; i++) {
       if (allDays[i].count > 0) {
         tempStreak++;
-        if (tempStreak > longestStreak) {
-          longestStreak = tempStreak;
-        }
       } else {
         tempStreak = 0;
       }
+      longestStreak = Math.max(longestStreak, tempStreak);
     }
     
     const dayOfWeekCounts = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0};
-    allDays.forEach(day => {
+    
+    for (const day of allDays) {
       if (day.count > 0) {
         const dayOfWeek = day.date.getDay();
         dayOfWeekCounts[dayOfWeek] += day.count;
       }
-    });
+    }
     
     const mostProductiveDayNum = Object.keys(dayOfWeekCounts).reduce(
       (a, b) => dayOfWeekCounts[a] > dayOfWeekCounts[b] ? a : b
@@ -233,7 +241,7 @@ const HabitTracker = ({
       mostProductiveDay: mostProductiveDayName,
       mostProductiveCount
     });
-  };
+  }, [groups, getBoards, getColumns, getTasks, selectedTimeRange]);
 
   const getActivityColor = (count) => {
     if (count === 0) return 'bg-gray-800'; 
@@ -306,10 +314,10 @@ const HabitTracker = ({
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-white font-medium">Task Completion Tracker</h3>
       </div>
-      
-      <div className="w-full overflow-hidden">
+
+      <div className="w-full overflow-x-auto pb-2">
         <div className="github-grid-container bg-gray-850 border border-gray-700 p-4 rounded-md overflow-x-auto">
-          <div className="relative ml-10" style={{height: '20px'}}>
+          <div className="relative ml-6 sm:ml-10" style={{height: '20px'}}>
             {monthLabels.map((month, index) => (
               <div 
                 key={index} 
@@ -329,11 +337,11 @@ const HabitTracker = ({
                 </div>
               ))}
             </div>
-            
-            <div className="flex-grow" style={{minWidth: '816px'}}> 
+
+            <div className="flex-grow min-w-[320px] md:min-w-[500px] lg:min-w-[700px]">
               <div className="flex">
                 {weeks.map((week, weekIndex) => (
-                  <div key={weekIndex} className="flex flex-col" style={{width: '15px', marginRight: '1px'}}>
+                  <div key={weekIndex} className="flex flex-col" style={{width: '12px', marginRight: '1px'}}>
                     {week.map((day, dayIndex) => {
                       const isToday = new Date(day.date).toDateString() === new Date().toDateString();
                       const isHovered = hoveredDay && new Date(hoveredDay.date).toDateString() === new Date(day.date).toDateString();
@@ -361,8 +369,8 @@ const HabitTracker = ({
               </div>
             </div>
           </div>
-          
-          <div className="flex justify-end items-center mt-2 text-xs text-gray-400">
+
+          <div className="flex flex-wrap justify-center sm:justify-end items-center mt-2 text-xs text-gray-400">
             <span>Less</span>
             <div className="flex mx-2">
               <div className="w-[13px] h-[13px] mr-[1px] bg-gray-800 border border-gray-700/50 rounded-sm"></div>
@@ -375,7 +383,7 @@ const HabitTracker = ({
           </div>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           <div className="bg-gray-800 rounded-lg p-3 border border-gray-700 hover:bg-gray-750 transition-colors">
             <div className="text-gray-400 text-xs">Active Days</div>
             <div className="text-white font-medium">
@@ -420,7 +428,7 @@ const HabitTracker = ({
         </div>
         
         {hoveredDay && (
-          <div className="bg-gray-800 rounded-lg p-3 mt-4 border border-gray-700 transform transition-all duration-300 animate-fade-in">
+          <div className="bg-gray-800 rounded-lg p-3 mt-4 border border-gray-700 max-w-full sm:max-w-md mx-auto transform transition-all duration-300 animate-fade-in">
             <div className="text-white text-sm mb-2 font-medium">
               {new Date(hoveredDay.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
             </div>

@@ -12,7 +12,8 @@ const Sidebar = ({
   onShowAchievements,
   onShowSearch,
   onShowGraph,
-  onShowSettings
+  onShowSettings,
+  onShowBacklog  // Added this missing prop
 }) => {
   const [newGroupName, setNewGroupName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -62,7 +63,7 @@ const Sidebar = ({
   
   return (
     <div className="flex h-screen relative z-10">
-      <div className="w-12 h-screen bg-gray-900 flex flex-col items-center py-3">
+      <div className="w-10 sm:w-12 h-screen bg-gray-900 flex flex-col items-center py-3">
         <div className="mb-6 text-xl font-bold">
           <span className="bg-gradient-to-r from-purple-400 to-indigo-500 text-transparent bg-clip-text">C</span>
         </div>
@@ -70,7 +71,7 @@ const Sidebar = ({
         <div className="flex flex-col items-center space-y-4">
           <button 
             onClick={onShowDashboard}
-            className="w-8 h-8 flex items-center justify-center rounded-md bg-indigo-800/30 hover:bg-indigo-800 text-indigo-400 hover:text-white transition-colors neon-icon"
+            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-md bg-indigo-800/30 hover:bg-indigo-800 text-indigo-400 hover:text-white transition-colors neon-icon"
             title="Dashboard"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -86,6 +87,17 @@ const Sidebar = ({
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+            </svg>
+          </button>
+
+          <button 
+            onClick={onShowBacklog}
+            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+            title="Backlog"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5z" />
+              <path d="M11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
             </svg>
           </button>
           
@@ -167,7 +179,7 @@ const Sidebar = ({
       </div>
       
       {expandedGroups && (
-        <div className="w-52 h-screen bg-gray-900 flex flex-col">
+        <div className="w-44 sm:w-52 h-screen bg-gray-900 flex flex-col">
           <div className="px-4 py-3 flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-500 tracking-wider">WORKSPACES</span>
             <button 

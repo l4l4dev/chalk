@@ -2,7 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { downloadExportFile, readImportFile, importData } from '../data/export-import';
 
-const SettingsView = ({ onBack, onThemeChange, isDarkMode, onResetApp }) => {
+const SettingsView = ({ 
+  onBack, 
+  onThemeChange, 
+  isDarkMode, 
+  onResetApp, 
+  backlogSchedulerActive,
+  setBacklogSchedulerActive}) => {
+
   const [importStatus, setImportStatus] = useState(null);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const [betaFeedbackEmail, setBetaFeedbackEmail] = useState('');
@@ -326,6 +333,28 @@ const SettingsView = ({ onBack, onThemeChange, isDarkMode, onResetApp }) => {
               </div>
             </div>
             
+            <div>
+              <h4 className="text-white font-medium mb-2">Task Management</h4>
+              <p className="text-gray-400 text-sm mb-2">
+                Configure automatic task organization features.
+              </p>
+              
+              <div className="form-group"> 
+                <label className="flex items-center cursor-pointer"> 
+                  <input 
+                    type="checkbox" 
+                    checked={backlogSchedulerActive} 
+                    onChange={(e) => setBacklogSchedulerActive(e.target.checked)} 
+                    className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mr-2" 
+                  /> 
+                  <span className="text-white">Auto-detect stale tasks and move to backlog</span> 
+                </label> 
+                <p className="text-gray-400 text-sm mt-1 ml-6"> 
+                  Tasks not updated for a week will be automatically moved to backlog
+                </p> 
+              </div>
+            </div>
+
             <div>
               <h4 className="text-white font-medium mb-2">Reset Application</h4>
               <p className="text-gray-400 text-sm mb-2">
