@@ -20,6 +20,7 @@ const Sidebar = ({
   const [expandedGroups, setExpandedGroups] = useState(true);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState(null);
+  const [activeIcon, setActiveIcon] = useState('dashboard');
   
   const handleCreateGroup = () => {
     if (newGroupName.trim()) {
@@ -61,6 +62,11 @@ const Sidebar = ({
     setGroupToDelete(null);
   };
   
+  const handleIconClick = (iconName, callback) => {
+    setActiveIcon(iconName);
+    if (callback) callback();
+  };
+  
   return (
     <div className="flex h-screen relative z-10">
       <div className="w-10 sm:w-12 h-screen bg-gray-900 flex flex-col items-center py-3 theme-sidebar">
@@ -70,8 +76,12 @@ const Sidebar = ({
         
         <div className="flex flex-col items-center space-y-4">
           <button 
-            onClick={onShowDashboard}
-            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-md bg-indigo-800/30 hover:bg-indigo-800 text-indigo-400 hover:text-white transition-colors neon-icon"
+            onClick={() => handleIconClick('dashboard', onShowDashboard)}
+            className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-md transition-colors ${
+              activeIcon === 'dashboard'
+                ? 'bg-indigo-800 text-white'
+                : 'bg-indigo-800/30 hover:bg-indigo-800 text-indigo-400 hover:text-white'
+            }`}
             title="Dashboard"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -81,8 +91,12 @@ const Sidebar = ({
           </button>
           
           <button 
-            onClick={onShowSearch}
-            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+            onClick={() => handleIconClick('search', onShowSearch)}
+            className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${
+              activeIcon === 'search'
+                ? 'bg-gray-800 text-white'
+                : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+            }`}
             title="Search Tasks"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -91,8 +105,12 @@ const Sidebar = ({
           </button>
 
           <button 
-            onClick={onShowBacklog}
-            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+            onClick={() => handleIconClick('backlog', onShowBacklog)}
+            className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${
+              activeIcon === 'backlog'
+                ? 'bg-gray-800 text-white'
+                : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+            }`}
             title="Backlog"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -102,8 +120,12 @@ const Sidebar = ({
           </button>
           
           <button 
-            onClick={onShowGraph}
-            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+            onClick={() => handleIconClick('graph', onShowGraph)}
+            className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${
+              activeIcon === 'graph'
+                ? 'bg-gray-800 text-white'
+                : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+            }`}
             title="Project Graph"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -112,8 +134,12 @@ const Sidebar = ({
           </button>
           
           <button 
-            onClick={onShowAchievements}
-            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+            onClick={() => handleIconClick('achievements', onShowAchievements)}
+            className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${
+              activeIcon === 'achievements'
+                ? 'bg-gray-800 text-white'
+                : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+            }`}
             title="Achievements"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -167,9 +193,13 @@ const Sidebar = ({
           </button>
           
           <button 
-            className="mt-2 w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+            onClick={() => handleIconClick('settings', onShowSettings)}
+            className={`mt-2 w-8 h-8 flex items-center justify-center rounded-md transition-colors ${
+              activeIcon === 'settings'
+                ? 'bg-gray-800 text-white'
+                : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+            }`}
             title="Settings"
-            onClick={onShowSettings}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />

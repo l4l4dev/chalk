@@ -27,9 +27,54 @@ const HabitTracker = ({
   const [streakMessage, setStreakMessage] = useState('');
   const [lastSeenStreak, setLastSeenStreak] = useState(0);
   
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationTime, setNotificationTime] = useState('18:00');
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [nextReminderTime, setNextReminderTime] = useState(null);
+  const [streakAlertsSent, setStreakAlertsSent] = useState({});
+  
   useEffect(() => {
     calculateActivityData();
+    
+    try {
+      const savedPrefs = localStorage.getItem('habitNotificationPrefs');
+      if (savedPrefs) {
+        const prefs = JSON.parse(savedPrefs);
+        setNotificationsEnabled(prefs.enabled);
+        setNotificationTime(prefs.time);
+      }
+    } catch (err) {
+      console.error("Could not load notification preferences", err);
+    }
   }, [groups, selectedTimeRange]);
+
+  useEffect(() => {
+    if (notificationsEnabled && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  }, [notificationsEnabled]);
+
+  useEffect(() => {
+    if (notificationsEnabled) {
+      calculateNextReminderTime();
+    }
+  }, [notificationsEnabled, notificationTime, stats.currentStreak]);
+
+  useEffect(() => {
+    if (notificationsEnabled) {
+      const today = new Date().toISOString().split('T')[0];
+      const lastActiveDay = findLastActiveDay();
+      
+      if (lastActiveDay) {
+        const daysSinceActive = getDaysDifference(new Date(lastActiveDay.date), new Date());
+        
+        if (daysSinceActive === 1 && stats.currentStreak > 2 && !streakAlertsSent[today]) {
+          sendStreakAlert();
+          setStreakAlertsSent({...streakAlertsSent, [today]: true});
+        }
+      }
+    }
+  }, [activityData, notificationsEnabled]);
 
   useEffect(() => {
     if (stats.currentStreak > 0 && stats.currentStreak > lastSeenStreak) {
@@ -58,6 +103,111 @@ const HabitTracker = ({
       setLastSeenStreak(stats.currentStreak);
     }
   }, [stats.currentStreak, lastSeenStreak]);
+  
+  const findLastActiveDay = () => {
+    for (let i = activityData.length - 1; i >= 0; i--) {
+      if (activityData[i].count > 0) {
+        return activityData[i];
+      }
+    }
+    return null;
+  };
+  
+  const getDaysDifference = (date1, date2) => {
+    const diffTime = Math.abs(date2 - date1);
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+  
+  const calculateNextReminderTime = () => {
+    if (!notificationsEnabled) return;
+    
+    const now = new Date();
+    const [hours, minutes] = notificationTime.split(':').map(Number);
+    
+    const reminderTime = new Date(now);
+    reminderTime.setHours(hours, minutes, 0, 0);
+    
+    if (reminderTime < now) {
+      reminderTime.setDate(reminderTime.getDate() + 1);
+    }
+    
+    setNextReminderTime(reminderTime);
+    
+    if (window.reminderTimeout) {
+      clearTimeout(window.reminderTimeout);
+    }
+    
+    const timeUntilReminder = reminderTime - now;
+    window.reminderTimeout = setTimeout(() => {
+      sendDailyReminder();
+    }, timeUntilReminder);
+  };
+  
+  const sendDailyReminder = () => {
+    if (!notificationsEnabled || Notification.permission !== 'granted') return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const todayData = activityData.find(day => day.date.toISOString().split('T')[0] === today);
+    
+    if (todayData && todayData.count > 0) {
+      return;
+    }
+    
+    let message = "Don't forget to complete your tasks today!";
+    
+    if (stats.currentStreak === 0) {
+      message = "Start your streak today! Complete a task 💪";
+    } else if (stats.currentStreak === 1) {
+      message = "Keep the momentum going! Day 2 of your streak awaits 🔥";
+    } else if (stats.currentStreak === 2) {
+      message = "Complete a task today for a 3-day streak! 🌟";
+    } else if (stats.currentStreak >= 3) {
+      message = `Protect your ${stats.currentStreak}-day streak! Complete a task today 🔥`;
+    }
+    
+    try {
+      new Notification("Daily Reminder", {
+        body: message,
+        icon: "/favicon.ico"
+      });
+    } catch (err) {
+      console.error("Could not send notification", err);
+    }
+    
+    calculateNextReminderTime();
+  };
+  
+  const sendStreakAlert = () => {
+    if (!notificationsEnabled || Notification.permission !== 'granted') return;
+    
+    try {
+      new Notification("Streak Alert!", {
+        body: `Don't break your ${stats.currentStreak}-day streak! Complete a task today to keep it going!`,
+        icon: "/favicon.ico"
+      });
+    } catch (err) {
+      console.error("Could not send streak alert", err);
+    }
+  };
+  
+  const saveNotificationPreferences = () => {
+    try {
+      localStorage.setItem('habitNotificationPrefs', JSON.stringify({
+        enabled: notificationsEnabled,
+        time: notificationTime
+      }));
+      
+      calculateNextReminderTime();
+    } catch (err) {
+      console.error("Could not save notification preferences", err);
+    }
+    
+    setShowNotificationSettings(false);
+  };
+  
+  const toggleNotificationSettings = () => {
+    setShowNotificationSettings(!showNotificationSettings);
+  };
 
   const celebrate = (message) => {
     setStreakMessage(message);
@@ -313,7 +463,68 @@ const HabitTracker = ({
 
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-white font-medium">Task Completion Tracker</h3>
+        
+        <button
+          onClick={toggleNotificationSettings}
+          className={`px-2 py-1 rounded-md text-xs flex items-center space-x-1 transition-colors ${
+            notificationsEnabled 
+              ? 'bg-indigo-700 hover:bg-indigo-600 text-white' 
+              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+          }`}
+          title="Notification Settings"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+          </svg>
+          <span>{notificationsEnabled ? 'Reminders On' : 'Reminders Off'}</span>
+        </button>
       </div>
+      
+      {showNotificationSettings && (
+        <div className="mb-4 p-3 bg-gray-750 border border-gray-600 rounded-lg animate-fade-in">
+          <h4 className="text-white text-sm font-medium mb-3">Reminder Settings</h4>
+          
+          <div className="flex items-center mb-3">
+            <label className="inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={notificationsEnabled}
+                onChange={() => setNotificationsEnabled(!notificationsEnabled)}
+                className="sr-only peer"
+              />
+              <div className="relative w-10 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-gray-300 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+              <span className="ms-3 text-sm font-medium text-gray-300">Enable Daily Reminders</span>
+            </label>
+          </div>
+          
+          {notificationsEnabled && (
+            <div className="flex items-center mb-3">
+              <label className="text-sm text-gray-300 mr-3">Remind me at:</label>
+              <input 
+                type="time" 
+                value={notificationTime}
+                onChange={(e) => setNotificationTime(e.target.value)}
+                className="bg-gray-700 text-white rounded-md px-2 py-1 text-sm border border-gray-600 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          )}
+          
+          {notificationsEnabled && nextReminderTime && (
+            <div className="text-xs text-gray-400 mb-3">
+              Next reminder: {nextReminderTime.toLocaleString()}
+            </div>
+          )}
+          
+          <div className="flex justify-end">
+            <button
+              onClick={saveNotificationPreferences}
+              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md transition-colors"
+            >
+              Save Settings
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="w-full overflow-x-auto pb-2">
         <div className="github-grid-container bg-gray-850 border border-gray-700 p-4 rounded-md overflow-x-auto">
@@ -346,6 +557,8 @@ const HabitTracker = ({
                       const isToday = new Date(day.date).toDateString() === new Date().toDateString();
                       const isHovered = hoveredDay && new Date(hoveredDay.date).toDateString() === new Date(day.date).toDateString();
                       const isStreak = day.count > 0 && weekIndex > 0 && weeks[weekIndex-1][dayIndex].count > 0;
+                      
+                      const isAtRisk = isToday && stats.currentStreak > 0 && day.count === 0;
 
                       return (
                         <div 
@@ -355,6 +568,7 @@ const HabitTracker = ({
                             ${isHovered ? 'ring-1 ring-indigo-400 scale-125 z-10' : ''} 
                             ${isToday ? 'ring-1 ring-white' : ''} 
                             ${isStreak ? 'streak-glow' : ''}
+                            ${isAtRisk ? 'at-risk-pulse' : ''}
                             w-[13px] h-[13px] mb-[1px] rounded-sm border border-gray-700/50
                             transition-all duration-300 ease-in-out hover:scale-110
                           `}
@@ -405,6 +619,18 @@ const HabitTracker = ({
                 <span className="ml-2">🔥</span>
               )}
             </div>
+            {stats.currentStreak > 0 && notificationsEnabled && (
+              <div className="text-xs mt-1 text-amber-400">
+                {findLastActiveDay() && getDaysDifference(new Date(findLastActiveDay().date), new Date()) >= 1 && (
+                  <span className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    Streak at risk! Complete a task today
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="bg-gray-800 rounded-lg p-3 border border-gray-700 hover:bg-gray-750 transition-colors">
@@ -493,6 +719,11 @@ const HabitTracker = ({
           to { opacity: 1; transform: translateX(0); }
         }
         
+        @keyframes at-risk-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
+          50% { box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.4); }
+        }
+        
         .animate-fire {
           animation: fire 1.5s infinite;
         }
@@ -516,6 +747,11 @@ const HabitTracker = ({
         
         .streak-glow {
           box-shadow: 0 0 5px 1px rgba(16, 185, 129, 0.7);
+        }
+        
+        .at-risk-pulse {
+          animation: at-risk-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          border: 1px solid #f59e0b;
         }
         
         .habit-tracker-container {

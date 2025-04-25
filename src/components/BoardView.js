@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import { restrictToParentElement } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
 import { DndContext, DragOverlay, useSensors, useSensor, PointerSensor, KeyboardSensor, useDroppable, pointerWithin } from '@dnd-kit/core';
 
@@ -32,9 +31,14 @@ const TaskCard = memo(({ task, onClick, isDragging = false }) => {
 
   return (
     <div
-      className={`bg-gray-900 rounded-md border-l-4 ${priorityColor} ${
+      className={`bg-gray-750 rounded-md border-l-4 ${priorityColor} ${
         task.completed ? 'opacity-60' : ''} ${
-        isDragging ? 'shadow-lg scale-105' : ''} transition-all duration-200 cursor-grab px-3 py-3 w-full`}
+        isDragging ? 'shadow-lg scale-105' : ''} 
+        transition-all duration-200 cursor-grab px-3 py-3 w-full
+        hover:bg-gray-700 hover:-translate-y-0.5 
+        shadow-md shadow-black/50 hover:shadow-lg
+        border border-gray-600 border-l-4
+        `}
       onClick={onClick}
       data-task-id={task.id}
     >
