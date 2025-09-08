@@ -9,8 +9,15 @@ A fast, privacy first Kanban board that runs entirely on your computer. No cloud
 
 ## Download
 
+### Zip Files
+
+-  **macOS (Apple Silicon, M1–M4)**: https://github.com/duriantaco/chalk/releases/latest/download/Chalk-mac-arm64.zip
+- **macOS (Intel x64)**: https://github.com/duriantaco/chalk/releases/latest/download/Chalk-mac-x64.zip
+
 - **macOS (Apple Silicon, M1–M4)**: https://github.com/duriantaco/chalk/releases/latest/download/Chalk-mac-arm64.dmg  
 - **macOS (Intel x64)**: https://github.com/duriantaco/chalk/releases/latest/download/Chalk-mac-x64.dmg
+
+Note: This is for `.dmg` ONLY. If you downloaded `.dmg`, run `xattr -dr com.apple.quarantine "/Applications/Chalk.app"`
 
 ### How to install (macOS)
 
@@ -46,17 +53,6 @@ A fast, privacy first Kanban board that runs entirely on your computer. No cloud
 ## Roadmap (post-beta)
 saved views, recurring tasks, WIP limits, attachments, analytics (CFD/cycle time), templates.
 
-## Install & run
-
-### Download
-
-- **macOS (Apple Silicon, M1–M4)**:  
-  https://github.com/duriantaco/chalk/releases/latest/download/Chalk-mac-arm64.dmg
-
-- **macOS (Intel x64)**:  
-  https://github.com/duriantaco/chalk/releases/latest/download/Chalk-mac-x64.dmg
-
-
 ## Usage basics
 
 1. Create a board -> add columns (e.g., "To-Do", "Doing", "Done")
@@ -83,6 +79,15 @@ Close modal/overlay: Esc
 - No network: the app does not send your data anywhere.
 
 **Tip:** If you want automatic off-device backup, point exports to a folder synced by your own service. We don’t ship any cloud integration.
+
+## Troubleshooting
+
+If macOS says “Chalk is damaged and can’t be opened” (unsigned beta):
+
+1) Move **Chalk** to **Applications**.
+2) Open Terminal and run:
+   `xattr -dr com.apple.quarantine "/Applications/Chalk.app"`
+3) Right-click **Chalk** -> **Open** -> **Open**.
 
 ## Contributing
 

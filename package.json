@@ -29,9 +29,7 @@
       "buildResources": "build"
     },
     "mac": {
-      "target": [
-        "dmg"
-      ],
+      "target": ["dmg", "zip"],
       "artifactName": "Chalk-mac-${arch}.dmg",
       "icon": "build/icon.png",
       "category": "public.app-category.productivity",
