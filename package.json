@@ -8,10 +8,10 @@
     "dev": "webpack --watch",
     "build": "webpack --mode=production",
     "start:prod": "NODE_ENV=production electron .",
-    "dist:mac": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg --x64 --arm64",
-    "dist:mac:publish": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg --x64 --arm64 --publish always",
-    "dist:mac:arm64": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg --arm64",
-    "dist:mac:x64": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg --x64"
+    "dist:mac": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg zip --x64 --arm64",
+    "dist:mac:publish": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg zip --x64 --arm64 --publish always",
+    "dist:mac:arm64": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg zip --arm64",
+    "dist:mac:x64": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg zip --x64"
   },
   "build": {
     "compression": "maximum",
@@ -20,17 +20,32 @@
     "files": [
       "dist/**",
       "!dist/**/*.map",
+      "!dist/mac",
+      "!dist/mac/**",
+      "!dist/mac-arm64",
+      "!dist/mac-arm64/**",
+      "!dist/win*",
+      "!dist/win*/**",
+      "!dist/linux*",
+      "!dist/linux*/**",
+      "!dist/*.dmg",
+      "!dist/*.zip",
+      "!dist/*.blockmap",
       "main.js",
       "preload.js",
       "package.json"
     ],
     "asar": true,
     "directories": {
-      "buildResources": "build"
+      "buildResources": "build",
+      "output": "release"
     },
     "mac": {
-      "target": ["dmg", "zip"],
-      "artifactName": "Chalk-mac-${arch}.dmg",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "artifactName": "Chalk-mac-${arch}.${ext}",
       "icon": "build/icon.png",
       "category": "public.app-category.productivity",
       "identity": null
@@ -47,15 +62,16 @@
         "deb"
       ],
       "icon": "build/icon.png"
-    }
-  },
+    },
     "publish": [
       {
         "provider": "github",
-        "owner": "oha",
-        "repo": "https://github.com/duriantaco/chalk"
+        "owner": "duriantaco",
+        "repo": "chalk",
+        "releaseType": "release"
       }
-    ],
+    ]
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

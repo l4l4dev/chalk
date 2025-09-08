@@ -6,28 +6,14 @@ A fast, privacy first Kanban board that runs entirely on your computer. No cloud
   <img src="assets/ss2.png" alt="Chalk — Main page" width="1000">
 </p>
 
-
 ## Download
 
 ### Zip Files
 
--  **macOS (Apple Silicon, M1–M4)**: https://github.com/duriantaco/chalk/releases/latest/download/Chalk-mac-arm64.zip
-- **macOS (Intel x64)**: https://github.com/duriantaco/chalk/releases/latest/download/Chalk-mac-x64.zip
-
 - **macOS (Apple Silicon, M1–M4)**: https://github.com/duriantaco/chalk/releases/latest/download/Chalk-mac-arm64.dmg  
 - **macOS (Intel x64)**: https://github.com/duriantaco/chalk/releases/latest/download/Chalk-mac-x64.dmg
 
-Note: This is for `.dmg` ONLY. If you downloaded `.dmg`, run `xattr -dr com.apple.quarantine "/Applications/Chalk.app"`
-
-### How to install (macOS)
-
-1) Open the `.dmg`, drag **Chalk** into **Applications**.  
-2) First run (unsigned build): Right-click **Chalk** -> **Open** -> **Open**  
-   - If macOS still blocks it, run:
-     ```
-     xattr -dr com.apple.quarantine /Applications/Chalk.app
-     ```
-3) Thats it. Have fun!
+**Note**: run `xattr -dr com.apple.quarantine "/Applications/Chalk.app"` after installing
 
 ## Core views
 
