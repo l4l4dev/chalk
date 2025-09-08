@@ -6,10 +6,12 @@
   "scripts": {
     "start": "electron .",
     "dev": "webpack --watch",
-    "build": "webpack --mode production",
+    "build": "webpack --mode=production",
     "start:prod": "NODE_ENV=production electron .",
-    "dist:mac": "NODE_ENV=production npm run build && electron-builder -m",
-    "dist:mac:debug": "CHALK_DEBUG=1 NODE_ENV=production npm run build && electron-builder -m"
+    "dist:mac": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg --x64 --arm64",
+    "dist:mac:publish": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg --x64 --arm64 --publish always",
+    "dist:mac:arm64": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg --arm64",
+    "dist:mac:x64": "NODE_ENV=production npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg --x64"
   },
   "build": {
     "compression": "maximum",
@@ -30,8 +32,10 @@
       "target": [
         "dmg"
       ],
+      "artifactName": "Chalk-mac-${arch}.dmg",
       "icon": "build/icon.png",
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "identity": null
     },
     "win": {
       "target": [
@@ -47,6 +51,13 @@
       "icon": "build/icon.png"
     }
   },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "oha",
+        "repo": "https://github.com/duriantaco/chalk"
+      }
+    ],
   "keywords": [],
   "author": "",
   "license": "ISC",
